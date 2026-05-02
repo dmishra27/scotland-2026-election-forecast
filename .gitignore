@@ -33,7 +33,7 @@ data/processed/
 # ML artefacts
 mlruns/
 mlartifacts/
-models/
+/models/
 *.pkl
 *.joblib
 
