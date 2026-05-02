@@ -1,0 +1,96 @@
+data:
+  n_voters: 12500
+  random_seed: 42
+  dirichlet_concentration: 50.0
+  regions:
+    - Central Scotland
+    - Glasgow
+    - Highlands and Islands
+    - Lothian
+    - Mid Scotland and Fife
+    - North East Scotland
+    - South Scotland
+    - West Scotland
+  region_electorate_weights:
+    Central Scotland: 0.135
+    Glasgow: 0.160
+    Highlands and Islands: 0.085
+    Lothian: 0.155
+    Mid Scotland and Fife: 0.135
+    North East Scotland: 0.120
+    South Scotland: 0.115
+    West Scotland: 0.095
+
+polling_priors:
+  # YouGov MRP, April 2026, n=3,925
+  constituency:
+    SNP: 0.356
+    Reform: 0.179
+    Labour: 0.163
+    Conservative: 0.103
+    LibDem: 0.080
+    Green: 0.060
+  regional_list:
+    SNP: 0.291
+    Reform: 0.180
+    Labour: 0.153
+    Conservative: 0.111
+    LibDem: 0.090
+    Green: 0.085
+  independence:
+    Yes: 0.466
+    No: 0.446
+    Undecided: 0.089
+
+seat_projection:
+  msp_total: 129
+  constituency_seats: 73
+  regional_seats: 56
+  regions_count: 8
+  regional_seats_per_region: 7
+  majority_threshold: 65
+  msp_projection_2026:
+    SNP: 67
+    Reform: 20
+    Labour: 15
+    Green: 11
+    Conservative: 9
+    LibDem: 7
+  seats_2021:
+    SNP: 64
+    Conservative: 31
+    Labour: 22
+    Green: 8
+    LibDem: 4
+    Reform: 0
+
+model:
+  base_learners:
+    - xgboost
+    - lightgbm
+    - catboost
+    - random_forest
+  meta_learner: logistic_regression
+  optuna_trials: 50
+  cv_folds: 5
+  target_col: constituency_vote
+  classes:
+    - SNP
+    - Reform
+    - Labour
+    - Conservative
+    - LibDem
+    - Green
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_batch_size: 1000
+
+mlflow:
+  experiment_name: "scotland-2026-forecast"
+  tracking_uri: "http://mlflow:5000"
+  run_name_prefix: "stacking-ensemble"
+
+streamlit:
+  port: 8501

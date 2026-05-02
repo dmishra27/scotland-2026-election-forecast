@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+.Python
+
+# Virtual environments
+.env
+.venv
+venv/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Data artefacts
+data/raw/
+data/processed/
+*.parquet
+*.csv
+
+# ML artefacts
+mlruns/
+mlartifacts/
+models/
+*.pkl
+*.joblib
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
