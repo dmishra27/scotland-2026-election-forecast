@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff==0.4.4
+      - name: Run ruff
+        run: ruff check src/ tests/ scripts/ streamlit_app/ --ignore E501,W503
+
+  unit-tests:
+    name: Unit tests (pytest)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/test_data_generation.py \
+                 tests/unit/test_api.py \
+                 tests/unit/test_metrics.py \
+                 -v --tb=short --timeout=120
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: .pytest_cache/
+
+  data-pipeline-smoke:
+    name: Data pipeline smoke test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Generate 500 voters and validate
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, ".")
+          from src.data.generate_voters import generate_voters, get_vote_share_summary
+
+          df = generate_voters(n_voters=500, random_seed=99)
+          assert len(df) == 500, "Row count mismatch"
+          assert df.isnull().sum().sum() == 0, "Null values found"
+          assert set(df["constituency_vote"].unique()).issubset(
+              {"SNP", "Reform", "Labour", "Conservative", "LibDem", "Green"}
+          ), "Unknown party found"
+
+          summary = get_vote_share_summary(df)
+          snp = summary["constituency"].get("SNP", 0)
+          assert 0.20 <= snp <= 0.55, f"SNP share {snp:.3f} out of expected range"
+
+          from src.features.pipeline import engineer_features, FEATURE_COLS
+          df_eng = engineer_features(df.copy())
+          for col in ["tactical_swing_index", "indep_economy_interaction", "nhs_dissatisfaction"]:
+              assert col in df_eng.columns, f"Missing engineered feature: {col}"
+              assert df_eng[col].isnull().sum() == 0, f"Nulls in {col}"
+
+          print("Data pipeline smoke test passed.")
+          EOF
+
+  api-smoke:
+    name: API smoke test (TestClient)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run API health check via TestClient
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, ".")
+          from fastapi.testclient import TestClient
+          from src.api.main import app
+
+          client = TestClient(app)
+
+          r = client.get("/health")
+          assert r.status_code == 200, f"Health check failed: {r.status_code}"
+          assert r.json()["status"] == "ok"
+
+          voter = {
+              "region": "Glasgow", "age": 30, "age_group": "25-34",
+              "gender": "Male", "education": "Degree", "urban_rural": "Urban",
+              "economic_concern": 7.0, "health_concern": 6.5, "immigration_concern": 4.0,
+              "top_priority": "Economy", "independence_stance": "Yes",
+              "previous_vote": "SNP", "party_id_strength": 2,
+              "nhs_satisfaction": 2, "cost_of_living_impact": 4,
+          }
+          r = client.post("/predict", json=voter)
+          assert r.status_code == 200, f"Predict failed: {r.status_code}"
+          body = r.json()
+          assert body["predicted_party"] in {"SNP","Reform","Labour","Conservative","LibDem","Green"}
+
+          r = client.get("/seats/projected")
+          assert r.status_code == 200
+          assert sum(r.json()["total"].values()) == 129
+
+          r = client.get("/model/info")
+          assert r.status_code == 200
+
+          print("API smoke test passed.")
+          EOF
