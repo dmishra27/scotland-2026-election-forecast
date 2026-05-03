@@ -264,7 +264,7 @@ def _save_seat_projection(ensemble, feat_pipeline, X_te: np.ndarray, df_slice: p
     from src.models.dhondt import project_seats_from_shares
 
     probs = ensemble.predict_proba(X_te)
-    classes = list(ensemble.model_.classes_)
+    classes = ensemble.classes_  # string party names; model_.classes_ holds int-encoded labels
     mean_probs = probs.mean(axis=0)
     con_shares = {c: float(p) for c, p in zip(classes, mean_probs)}
     list_shares = con_shares  # approximate list shares from same model

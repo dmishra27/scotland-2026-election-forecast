@@ -52,7 +52,7 @@ def compute_shap_values(
 
     all_shap: list[np.ndarray] = []
 
-    for name, estimator in model.model_.estimators_:
+    for name, estimator in model.model_.named_estimators_.items():
         try:
             explainer = shap.TreeExplainer(estimator)
             sv = explainer.shap_values(X_sample)
