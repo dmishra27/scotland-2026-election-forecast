@@ -140,11 +140,11 @@ def _build_estimator(name: str, params: dict[str, Any]):
     if name == "xgboost":
         return XGBClassifier(**params, use_label_encoder=False, eval_metric="mlogloss", verbosity=0, n_jobs=-1)
     if name == "lightgbm":
-        return LGBMClassifier(**params, verbose=-1, n_jobs=-1)
+        return LGBMClassifier(**params, verbose=-1, n_jobs=-1, class_weight="balanced")
     if name == "catboost":
         return CatBoostClassifier(**params, verbose=False, allow_writing_files=False)
     if name == "random_forest":
-        return RandomForestClassifier(**params, random_state=42, n_jobs=-1)
+        return RandomForestClassifier(**params, random_state=42, n_jobs=-1, class_weight="balanced")
     raise ValueError(f"Unknown estimator: {name}")
 
 
@@ -178,7 +178,7 @@ class StackingEnsemble:
             self.best_params_[name] = params
             estimators.append((name, _build_estimator(name, params)))
 
-        meta = LogisticRegression(max_iter=1000, C=1.0)
+        meta = LogisticRegression(max_iter=1000, C=1.0, class_weight="balanced")
         cv = StratifiedKFold(n_splits=self.cv_folds, shuffle=True, random_state=42)
 
         self.model_ = StackingClassifier(
