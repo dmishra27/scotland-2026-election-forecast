@@ -17,7 +17,7 @@ class VoterFeatures(BaseModel):
     health_concern: float = Field(..., ge=0.0, le=10.0)
     immigration_concern: float = Field(..., ge=0.0, le=10.0)
     top_priority: str
-    independence_stance: str = Field(..., pattern="^(Yes|No|Undecided)$")
+    independence_stance: str = Field(..., pattern="^(Strong Yes|Lean Yes|Undecided|Lean No|Strong No)$")
     previous_vote: str
     party_id_strength: int = Field(..., ge=0, le=3)
     nhs_satisfaction: int = Field(..., ge=1, le=5)
@@ -35,7 +35,7 @@ class VoterFeatures(BaseModel):
             "health_concern": 8.1,
             "immigration_concern": 4.5,
             "top_priority": "Health",
-            "independence_stance": "Yes",
+            "independence_stance": "Strong Yes",
             "previous_vote": "SNP",
             "party_id_strength": 2,
             "nhs_satisfaction": 2,

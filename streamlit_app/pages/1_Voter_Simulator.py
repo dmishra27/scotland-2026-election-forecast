@@ -39,11 +39,19 @@ PREV_PARTIES = ["SNP", "Reform", "Labour", "Conservative", "LibDem", "Green", "D
 
 def _rule_based_predict(voter: dict) -> dict:
     probs = dict(PRIOR_PROBS)
-    if voter["independence_stance"] == "Yes":
+    stance = voter["independence_stance"]
+    if stance == "Strong Yes":
+        probs["SNP"] = min(probs["SNP"] * 1.5, 0.85)
+        probs["Green"] = min(probs["Green"] * 1.2, 0.85)
+    elif stance == "Lean Yes":
         probs["SNP"] = min(probs["SNP"] * 1.25, 0.85)
-    elif voter["independence_stance"] == "No":
-        probs["SNP"] *= 0.65
-    boost = {"Economy": "Reform", "Health": "Labour", "Immigration": "Reform", "Independence": "SNP"}
+    elif stance == "Lean No":
+        probs["SNP"] *= 0.75
+        probs["Conservative"] = min(probs["Conservative"] * 1.3, 0.85)
+    elif stance == "Strong No":
+        probs["SNP"] *= 0.55
+        probs["Conservative"] = min(probs["Conservative"] * 1.6, 0.85)
+    boost = {"Economy": "Reform", "Health": "Labour", "Immigration": "Reform", "Independence": "SNP", "Housing": "Green"}
     b = boost.get(voter["top_priority"])
     if b:
         probs[b] *= 1.20
@@ -76,8 +84,8 @@ with st.sidebar:
     gender = st.selectbox("Gender", ["Female", "Male", "Other"])
     education = st.selectbox("Education", EDUCATION, index=4)
     urban_rural = st.selectbox("Urban/Rural", ["Urban", "Suburban", "Rural"])
-    indep_stance = st.selectbox("Independence stance", ["Yes", "No", "Undecided"])
-    top_priority = st.selectbox("Top priority", ["Economy", "Health", "Immigration", "Independence"])
+    indep_stance = st.selectbox("Independence stance", ["Strong Yes", "Lean Yes", "Undecided", "Lean No", "Strong No"])
+    top_priority = st.selectbox("Top priority", ["Economy", "Health", "Immigration", "Independence", "Housing"])
     prev_vote = st.selectbox("2021 vote", PREV_PARTIES)
     party_id = st.slider("Party attachment (0=none, 3=strong)", 0, 3, 1)
     econ_concern = st.slider("Economic concern (0–10)", 0.0, 10.0, 6.5, 0.1)

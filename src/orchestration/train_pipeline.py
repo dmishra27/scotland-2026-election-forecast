@@ -84,11 +84,20 @@ def validate_dataframe(df: pd.DataFrame) -> None:
 # ── Brier score helper ────────────────────────────────────────────────────────
 
 def multiclass_brier(y_true: np.ndarray, y_prob: np.ndarray, classes: list) -> float:
-    """Mean Brier score over all classes (one-vs-rest)."""
+    """Mean Brier score over all classes (one-vs-rest).
+
+    Accepts either string or integer-encoded y_true.  When classes is a list
+    of integers the encoding step is skipped.
+    """
     scores = []
-    le = LabelEncoder().fit(classes)
-    y_enc = le.transform(y_true)
-    for i, _ in enumerate(classes):
+    if len(classes) > 0 and isinstance(classes[0], str):
+        # Use caller-supplied order so y_prob[:, i] aligns with classes[i].
+        # LabelEncoder sorts alphabetically and breaks that alignment.
+        class_to_idx = {c: i for i, c in enumerate(classes)}
+        y_enc = np.array([class_to_idx[c] for c in y_true])
+    else:
+        y_enc = np.asarray(y_true)
+    for i in range(len(classes)):
         y_bin = (y_enc == i).astype(int)
         scores.append(brier_score_loss(y_bin, y_prob[:, i]))
     return float(np.mean(scores))
@@ -162,7 +171,10 @@ def run_pipeline(
     X_te = feat_pipeline.transform(X_test)
 
     # ── 6. train base models ───────────────────────────────────────────────
-    mlflow.set_tracking_uri(tracking_uri)
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    else:
+        mlflow.set_tracking_uri("file:./mlruns")
     mlflow.set_experiment(experiment_name)
 
     base_results: dict[str, dict] = {}
@@ -190,21 +202,22 @@ def run_pipeline(
     ensemble.fit(X_tr, y_train)
 
     # ── 8. evaluate ────────────────────────────────────────────────────────
-    test_preds = ensemble.predict(X_te)
+    # ensemble.predict() returns decoded string labels; internal probs are
+    # indexed by the integer-encoded class order from ensemble.le_
+    test_preds = ensemble.predict(X_te)          # string party names
+    test_preds_enc = ensemble.le_.transform(test_preds)
     test_probs = ensemble.predict_proba(X_te)
+    y_test_enc = ensemble.le_.transform(y_test)
 
     test_metrics = {
         "test_accuracy": round(accuracy_score(y_test, test_preds), 4),
         "test_f1_macro": round(f1_score(y_test, test_preds, average="macro", zero_division=0), 4),
-        "test_log_loss": round(log_loss(y_test, test_probs), 4),
-        "test_brier_score": round(multiclass_brier(y_test, test_probs, PARTIES), 4),
+        "test_log_loss": round(log_loss(y_test_enc, test_probs), 4),
+        "test_brier_score": round(multiclass_brier(y_test_enc, test_probs, list(range(len(ensemble.classes_)))), 4),
     }
     per_party_f1 = {
-        f"test_f1_{p}": round(v, 4)
-        for p, v in zip(
-            ensemble.model_.classes_,
-            f1_score(y_test, test_preds, average=None, zero_division=0),
-        )
+        f"test_f1_{ensemble.classes_[i]}": round(v, 4)
+        for i, v in enumerate(f1_score(y_test_enc, test_preds_enc, average=None, zero_division=0))
     }
     test_metrics.update(per_party_f1)
     log.info("Test metrics: %s", json.dumps(test_metrics, indent=2))
@@ -257,9 +270,13 @@ def _save_seat_projection(ensemble, feat_pipeline, X_te: np.ndarray, df_slice: p
     list_shares = con_shares  # approximate list shares from same model
 
     allocation = project_seats_from_shares(con_shares, list_shares)
+
+    def _native(d: dict) -> dict:
+        return {str(k): int(v) for k, v in d.items()}
+
     out = {
-        "constituency": allocation.constituency,
-        "regional": allocation.regional,
+        "constituency": _native(allocation.constituency),
+        "regional": _native(allocation.regional),
     }
     out_dir = Path("data/processed")
     out_dir.mkdir(parents=True, exist_ok=True)

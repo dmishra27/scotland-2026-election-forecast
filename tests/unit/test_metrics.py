@@ -78,7 +78,7 @@ class TestSeatAllocation:
         self.alloc = SeatAllocation(
             constituency={"SNP": 50, "Labour": 10, "Conservative": 8, "LibDem": 5,
                           "Reform": 0, "Green": 0},
-            regional={"SNP": 17, "Reform": 10, "Labour": 5, "Conservative": 1,
+            regional={"SNP": 17, "Reform": 20, "Labour": 5, "Conservative": 1,
                       "LibDem": 2, "Green": 11},
         )
 

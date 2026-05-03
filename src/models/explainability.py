@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import shap
 
-warnings.filterwarnings("ignore", category=shap.utils._exceptions.InvalidModelError)
+warnings.filterwarnings("ignore", message=".*SHAP.*")
 
 
 def compute_shap_values(

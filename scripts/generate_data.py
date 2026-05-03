@@ -33,7 +33,7 @@ def main(n_voters, seed, out, config):
     df.to_parquet(out_path, index=False)
 
     summary = get_vote_share_summary(df)
-    click.echo(f"Saved {len(df):,} rows → {out_path}")
+    click.echo(f"Saved {len(df):,} rows -> {out_path}")
     click.echo("Constituency vote shares:")
     for party, share in sorted(summary["constituency"].items(), key=lambda x: -x[1]):
         click.echo(f"  {party:<14} {share:.1%}")

@@ -20,6 +20,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -31,6 +32,12 @@ with open(_CFG_PATH) as _f:
 N_TRIALS: int = _CFG["model"]["optuna_trials"]
 CV_FOLDS: int = _CFG["model"]["cv_folds"]
 _CV = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+
+def _encode(y_train: np.ndarray, y_val: np.ndarray) -> tuple[np.ndarray, np.ndarray, LabelEncoder]:
+    """Encode string labels to integers. Returns (y_train_enc, y_val_enc, le)."""
+    le = LabelEncoder()
+    return le.fit_transform(y_train), le.transform(y_val), le
 
 
 def _oof_f1(clf, X: np.ndarray, y: np.ndarray) -> float:
@@ -45,6 +52,8 @@ def train_xgboost(
     X_val: np.ndarray, y_val: np.ndarray,
     n_trials: int = N_TRIALS,
 ) -> tuple[Any, dict, float]:
+    y_tr, y_vl, le = _encode(y_train, y_val)
+
     def objective(trial: optuna.Trial) -> float:
         params = {
             "n_estimators": trial.suggest_int("n_estimators", 200, 800),
@@ -59,14 +68,14 @@ def train_xgboost(
             "n_jobs": -1,
         }
         clf = XGBClassifier(**params)
-        return -_oof_f1(clf, X_train, y_train)
+        return -_oof_f1(clf, X_train, y_tr)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
     best = study.best_params
     clf = XGBClassifier(**best, eval_metric="mlogloss", verbosity=0, n_jobs=-1)
-    clf.fit(X_train, y_train)
-    val_f1 = f1_score(y_val, clf.predict(X_val), average="macro", zero_division=0)
+    clf.fit(X_train, y_tr)
+    val_f1 = f1_score(y_vl, clf.predict(X_val), average="macro", zero_division=0)
     return clf, best, float(val_f1)
 
 
@@ -77,6 +86,8 @@ def train_lightgbm(
     X_val: np.ndarray, y_val: np.ndarray,
     n_trials: int = N_TRIALS,
 ) -> tuple[Any, dict, float]:
+    y_tr, y_vl, le = _encode(y_train, y_val)
+
     def objective(trial: optuna.Trial) -> float:
         params = {
             "n_estimators": trial.suggest_int("n_estimators", 200, 800),
@@ -89,14 +100,14 @@ def train_lightgbm(
             "n_jobs": -1,
         }
         clf = LGBMClassifier(**params)
-        return -_oof_f1(clf, X_train, y_train)
+        return -_oof_f1(clf, X_train, y_tr)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
     best = study.best_params
     clf = LGBMClassifier(**best, verbose=-1, n_jobs=-1)
-    clf.fit(X_train, y_train)
-    val_f1 = f1_score(y_val, clf.predict(X_val), average="macro", zero_division=0)
+    clf.fit(X_train, y_tr)
+    val_f1 = f1_score(y_vl, clf.predict(X_val), average="macro", zero_division=0)
     return clf, best, float(val_f1)
 
 
@@ -108,6 +119,8 @@ def train_catboost(
     n_trials: int = N_TRIALS,
     calibrate: bool = True,
 ) -> tuple[Any, dict, float]:
+    y_tr, y_vl, le = _encode(y_train, y_val)
+
     def objective(trial: optuna.Trial) -> float:
         params = {
             "iterations": trial.suggest_int("iterations", 200, 800),
@@ -118,7 +131,7 @@ def train_catboost(
             "allow_writing_files": False,
         }
         clf = CatBoostClassifier(**params)
-        return -_oof_f1(clf, X_train, y_train)
+        return -_oof_f1(clf, X_train, y_tr)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
@@ -128,8 +141,8 @@ def train_catboost(
         clf = CalibratedClassifierCV(base_clf, method="isotonic", cv=3)
     else:
         clf = base_clf
-    clf.fit(X_train, y_train)
-    val_f1 = f1_score(y_val, clf.predict(X_val), average="macro", zero_division=0)
+    clf.fit(X_train, y_tr)
+    val_f1 = f1_score(y_vl, clf.predict(X_val), average="macro", zero_division=0)
     return clf, best, float(val_f1)
 
 
@@ -141,6 +154,8 @@ def train_random_forest(
     n_trials: int = N_TRIALS,
     calibrate: bool = True,
 ) -> tuple[Any, dict, float]:
+    y_tr, y_vl, le = _encode(y_train, y_val)
+
     def objective(trial: optuna.Trial) -> float:
         params = {
             "n_estimators": trial.suggest_int("n_estimators", 200, 600),
@@ -151,7 +166,7 @@ def train_random_forest(
             "n_jobs": -1,
         }
         clf = RandomForestClassifier(**params, random_state=42)
-        return -_oof_f1(clf, X_train, y_train)
+        return -_oof_f1(clf, X_train, y_tr)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
@@ -161,8 +176,8 @@ def train_random_forest(
         clf = CalibratedClassifierCV(base_clf, method="isotonic", cv=3)
     else:
         clf = base_clf
-    clf.fit(X_train, y_train)
-    val_f1 = f1_score(y_val, clf.predict(X_val), average="macro", zero_division=0)
+    clf.fit(X_train, y_tr)
+    val_f1 = f1_score(y_vl, clf.predict(X_val), average="macro", zero_division=0)
     return clf, best, float(val_f1)
 
 
@@ -173,16 +188,18 @@ def train_logistic_regression(
     X_val: np.ndarray, y_val: np.ndarray,
     n_trials: int = N_TRIALS,
 ) -> tuple[Any, dict, float]:
+    y_tr, y_vl, le = _encode(y_train, y_val)
+
     def objective(trial: optuna.Trial) -> float:
         C = trial.suggest_float("C", 1e-3, 100.0, log=True)
         solver = trial.suggest_categorical("solver", ["lbfgs", "saga"])
-        clf = LogisticRegression(C=C, solver=solver, max_iter=1000, multi_class="multinomial", n_jobs=-1)
-        return -_oof_f1(clf, X_train, y_train)
+        clf = LogisticRegression(C=C, solver=solver, max_iter=1000)
+        return -_oof_f1(clf, X_train, y_tr)
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=min(n_trials, 30), show_progress_bar=False)
     best = study.best_params
-    clf = LogisticRegression(**best, max_iter=1000, multi_class="multinomial", n_jobs=-1)
-    clf.fit(X_train, y_train)
-    val_f1 = f1_score(y_val, clf.predict(X_val), average="macro", zero_division=0)
+    clf = LogisticRegression(**best, max_iter=1000)
+    clf.fit(X_train, y_tr)
+    val_f1 = f1_score(y_vl, clf.predict(X_val), average="macro", zero_division=0)
     return clf, best, float(val_f1)

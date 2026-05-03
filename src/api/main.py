@@ -113,15 +113,22 @@ def _demo_predict(voter: VoterFeatures) -> PredictionResponse:
     probs = dict(_PRIOR_CON)
 
     # Independence stance → SNP / unionist bias
-    if voter.independence_stance == "Yes":
+    if voter.independence_stance == "Strong Yes":
+        probs["SNP"] = min(probs["SNP"] * 1.5, 0.85)
+        probs["Green"] = min(probs["Green"] * 1.2, 0.85)
+    elif voter.independence_stance == "Lean Yes":
         probs["SNP"] = min(probs["SNP"] * 1.25, 0.85)
-    elif voter.independence_stance == "No":
-        probs["SNP"] = probs["SNP"] * 0.65
+    elif voter.independence_stance == "Lean No":
+        probs["SNP"] *= 0.75
+        probs["Conservative"] = min(probs["Conservative"] * 1.3, 0.85)
+    elif voter.independence_stance == "Strong No":
+        probs["SNP"] *= 0.55
+        probs["Conservative"] = min(probs["Conservative"] * 1.6, 0.85)
 
     # Top priority → party boost
     boosts = {
         "Economy": "Reform", "Health": "Labour",
-        "Immigration": "Reform", "Independence": "SNP",
+        "Immigration": "Reform", "Independence": "SNP", "Housing": "Green",
     }
     boosted = boosts.get(voter.top_priority)
     if boosted:
@@ -209,9 +216,11 @@ def seats_projected() -> SeatProjectionResponse:
     from src.models.dhondt import project_seats_from_shares
 
     results_path = Path("data/processed/seat_projection.yaml")
+    cached = None
     if results_path.exists():
         with open(results_path) as f:
             cached = yaml.safe_load(f)
+    if cached and "constituency" in cached and "regional" in cached:
         allocation = type("_A", (), cached)()
         con = cached["constituency"]
         reg = cached["regional"]

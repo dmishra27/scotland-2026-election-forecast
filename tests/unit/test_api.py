@@ -26,7 +26,7 @@ VALID_VOTER = {
     "health_concern": 8.1,
     "immigration_concern": 4.5,
     "top_priority": "Health",
-    "independence_stance": "Yes",
+    "independence_stance": "Strong Yes",
     "previous_vote": "SNP",
     "party_id_strength": 2,
     "nhs_satisfaction": 2,
@@ -112,14 +112,14 @@ class TestPredict:
 
     def test_health_priority_biases_health_parties(self):
         """Voters citing Health as top priority should favour Labour/SNP over Reform."""
-        health_voter = {**VALID_VOTER, "top_priority": "Health", "independence_stance": "No"}
+        health_voter = {**VALID_VOTER, "top_priority": "Health", "independence_stance": "Strong No"}
         r = client.post("/predict", json=health_voter)
         probs = r.json()["probabilities"]
         assert probs.get("Reform", 0) < probs.get("Labour", 0) + probs.get("SNP", 0)
 
     def test_yes_voter_leans_snp(self):
-        """Independence Yes voter in demo mode should have highest SNP probability."""
-        yes_voter = {**VALID_VOTER, "independence_stance": "Yes"}
+        """Strong Yes voter in demo mode should have highest SNP probability."""
+        yes_voter = {**VALID_VOTER, "independence_stance": "Strong Yes"}
         r = client.post("/predict", json=yes_voter)
         probs = r.json()["probabilities"]
         assert probs["SNP"] == max(probs.values())

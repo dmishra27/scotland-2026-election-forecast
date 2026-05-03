@@ -32,6 +32,7 @@ from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, log_loss
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -150,7 +151,12 @@ def _build_estimator(name: str, params: dict[str, Any]):
 # ── StackingEnsemble class ───────────────────────────────────────────────────
 
 class StackingEnsemble:
-    """Stacking ensemble with Optuna-tuned base learners and LR meta-learner."""
+    """Stacking ensemble with Optuna-tuned base learners and LR meta-learner.
+
+    Internally encodes string class labels to integers so XGBoost 3.x and
+    other strict classifiers are satisfied.  The public API always accepts
+    and returns original string party labels.
+    """
 
     def __init__(self, n_trials: int = N_TRIALS, cv_folds: int = CV_FOLDS):
         self.n_trials = n_trials
@@ -158,15 +164,21 @@ class StackingEnsemble:
         self.best_params_: dict[str, dict] = {}
         self.model_: StackingClassifier | None = None
         self.classes_: list[str] = CLASSES
+        self.le_: LabelEncoder | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "StackingEnsemble":
+        # Encode string labels → integers for XGBoost/other strict learners
+        self.le_ = LabelEncoder()
+        y_enc = self.le_.fit_transform(y)
+        self.classes_ = list(self.le_.classes_)
+
         estimators = []
         for name in _CFG["model"]["base_learners"]:
-            params = _tune_estimator(name, X, y, self.n_trials)
+            params = _tune_estimator(name, X, y_enc, self.n_trials)
             self.best_params_[name] = params
             estimators.append((name, _build_estimator(name, params)))
 
-        meta = LogisticRegression(max_iter=1000, C=1.0, multi_class="multinomial", n_jobs=-1)
+        meta = LogisticRegression(max_iter=1000, C=1.0)
         cv = StratifiedKFold(n_splits=self.cv_folds, shuffle=True, random_state=42)
 
         self.model_ = StackingClassifier(
@@ -176,22 +188,24 @@ class StackingEnsemble:
             stack_method="predict_proba",
             n_jobs=-1,
         )
-        self.model_.fit(X, y)
+        self.model_.fit(X, y_enc)
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        return self.model_.predict(X)
+        """Return string party labels."""
+        return self.le_.inverse_transform(self.model_.predict(X))
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         return self.model_.predict_proba(X)
 
     def evaluate(self, X: np.ndarray, y: np.ndarray) -> dict[str, float]:
-        preds = self.predict(X)
+        y_enc = self.le_.transform(y)
+        preds_enc = self.model_.predict(X)
         probs = self.predict_proba(X)
         return {
-            "accuracy": round(accuracy_score(y, preds), 4),
-            "f1_macro": round(f1_score(y, preds, average="macro"), 4),
-            "log_loss": round(log_loss(y, probs), 4),
+            "accuracy": round(accuracy_score(y_enc, preds_enc), 4),
+            "f1_macro": round(f1_score(y_enc, preds_enc, average="macro"), 4),
+            "log_loss": round(log_loss(y_enc, probs), 4),
         }
 
     def save(self, path: Path | str) -> None:

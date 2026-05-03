@@ -74,7 +74,9 @@ class TestGenerateVoters:
 
     def test_independence_stance_values(self):
         df = generate_voters(n_voters=1000, random_seed=10)
-        assert set(df["independence_stance"].unique()).issubset({"Yes", "No", "Undecided"})
+        assert set(df["independence_stance"].unique()).issubset(
+            {"Strong Yes", "Lean Yes", "Undecided", "Lean No", "Strong No"}
+        )
 
     def test_tactical_voter_detection(self):
         df = generate_voters(n_voters=500, random_seed=11)
@@ -82,10 +84,13 @@ class TestGenerateVoters:
         pd.testing.assert_series_equal(df["is_tactical"], expected_tactical, check_names=False)
 
     def test_constituency_snp_share_approx_prior(self):
-        """SNP constituency share should be within ±5pp of the 35.6% prior."""
+        """SNP constituency share should be within ±10pp of the 35.6% prior.
+        Wider tolerance expected because feature adjustments (loyalty ×2.5, independence
+        stance) shift the sampled distribution away from the raw MRP prior.
+        """
         df = generate_voters(n_voters=12_500, random_seed=42)
         snp_share = (df["constituency_vote"] == "SNP").mean()
-        assert abs(snp_share - 0.356) < 0.05, f"SNP share {snp_share:.3f} too far from prior"
+        assert abs(snp_share - 0.356) < 0.10, f"SNP share {snp_share:.3f} too far from prior"
 
     def test_all_regions_represented(self):
         df = generate_voters(n_voters=5000, random_seed=13)
