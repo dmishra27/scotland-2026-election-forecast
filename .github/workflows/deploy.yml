@@ -1,0 +1,49 @@
+name: CD — Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: SSH deploy to Oracle VM
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key:      ${{ secrets.ORACLE_SSH_KEY }}
+          port:     22
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            APP_DIR="${HOME}/scotland-2026-election-forecast"
+            COMPOSE="docker compose -f ${APP_DIR}/deploy/docker-compose.prod.yml \
+                      --env-file ${APP_DIR}/deploy/.env.prod"
+
+            echo "=== git pull ==="
+            git -C "${APP_DIR}" pull origin main
+
+            echo "=== rebuild and restart changed services ==="
+            ${COMPOSE} up -d --build
+
+            echo "=== waiting 40 s for health checks ==="
+            sleep 40
+
+            echo "=== container status ==="
+            ${COMPOSE} ps
+
+            echo "=== API health check ==="
+            curl -sf http://localhost:8000/health | python3 -m json.tool
+
+            echo "=== Streamlit health check ==="
+            curl -sf http://localhost:8501/_stcore/health
+
+            echo "=== MLflow health check ==="
+            curl -sf http://localhost:5000/health | python3 -m json.tool || true
+
+            echo "=== deploy complete ==="

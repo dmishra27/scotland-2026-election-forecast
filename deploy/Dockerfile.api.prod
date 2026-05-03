@@ -1,0 +1,28 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/     ./src/
+COPY configs/ ./configs/
+# models/ is mounted as a named volume in production;
+# copy here provides a fallback for standalone docker run.
+COPY models/  ./models/
+
+ENV PYTHONPATH=/app
+ENV MODEL_PATH=/app/models/ensemble.pkl
+ENV PIPELINE_PATH=/app/models/pipeline.pkl
+
+EXPOSE 8000
+
+# --root-path /api tells uvicorn the ASGI root so FastAPI's
+# Swagger UI generates correct URLs when behind the /api/ nginx prefix.
+CMD ["python", "-m", "uvicorn", "src.api.main:app", \
+     "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "2", "--root-path", "/api"]
