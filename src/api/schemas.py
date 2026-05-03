@@ -3,13 +3,27 @@
 from __future__ import annotations
 
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+def _age_to_group(age: int) -> str:
+    if age < 25:
+        return "18-24"
+    if age < 35:
+        return "25-34"
+    if age < 45:
+        return "35-44"
+    if age < 55:
+        return "45-54"
+    if age < 65:
+        return "55-64"
+    return "65+"
 
 
 class VoterFeatures(BaseModel):
     region: str = Field(..., description="Scottish Parliament region")
     age: int = Field(..., ge=18, le=85)
-    age_group: str = Field(..., description="Age band, e.g. '25-34'")
+    age_group: Optional[str] = Field(None, description="Age band (auto-derived from age if omitted)")
     gender: str
     education: str
     urban_rural: str
@@ -23,11 +37,16 @@ class VoterFeatures(BaseModel):
     nhs_satisfaction: int = Field(..., ge=1, le=5)
     cost_of_living_impact: int = Field(..., ge=1, le=5)
 
+    @model_validator(mode="after")
+    def derive_age_group(self) -> "VoterFeatures":
+        if self.age_group is None:
+            self.age_group = _age_to_group(self.age)
+        return self
+
     model_config = {"json_schema_extra": {
         "example": {
             "region": "Glasgow",
             "age": 34,
-            "age_group": "25-34",
             "gender": "Female",
             "education": "Degree",
             "urban_rural": "Urban",
