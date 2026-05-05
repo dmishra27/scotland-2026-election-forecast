@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(pip install *)",
+      "Bash(python *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\dmish\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-dmish-projects-scotland-2026-election-forecast\\\\36eacb57-0ca1-468e-a38b-8444a47ef9f2\\\\tasks\\\\*.output\")",
+      "Bash(Sort-Object LastWriteTime -Descending)",
+      "Bash(Select-Object -First 3)",
+      "Bash(Format-Table Name, LastWriteTime, Length)",
+      "PowerShell(cd C:\\\\Users\\\\dmish\\\\projects\\\\scotland-2026-election-forecast; Start-Process powershell -ArgumentList \"-NoExit\", \"-Command\", \"cd '$PWD'; python -m uvicorn src.api.main:app --reload --port 8000\" -WindowStyle Normal; Start-Process powershell -ArgumentList \"-NoExit\", \"-Command\", \"cd '$PWD'; python -m streamlit run streamlit_app/Home.py\" -WindowStyle Normal; Start-Process powershell -ArgumentList \"-NoExit\", \"-Command\", \"cd '$PWD'; python -m mlflow ui --port 5000\" -WindowStyle Normal)",
+      "PowerShell(Start-Sleep 15; Invoke-RestMethod -Uri \"http://localhost:8000/health\" -Method GET | ConvertTo-Json)"
+    ]
+  }
+}

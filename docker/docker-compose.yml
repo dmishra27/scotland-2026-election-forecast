@@ -30,9 +30,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_PATH=/app/models/ensemble.pkl
-      - PIPELINE_PATH=/app/models/pipeline.pkl
+      - MODEL_PATH=/app/models/latest/ensemble.pkl
+      - PIPELINE_PATH=/app/models/latest/pipeline.pkl
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+
+    volumes:
+      - ../models:/app/models   # ← ADD THIS LINE
+
     depends_on:
       mlflow:
         condition: service_healthy

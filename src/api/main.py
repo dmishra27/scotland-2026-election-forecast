@@ -9,13 +9,15 @@ endpoint is always functional for testing and the Streamlit dashboard.
 from __future__ import annotations
 
 import os
-from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import Any
+import joblib
 
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 import yaml
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -28,6 +30,10 @@ from src.api.schemas import (
     SeatProjectionResponse,
     VoterFeatures,
 )
+
+MODEL = None
+PIPELINE = None
+MODEL_MTIME = None
 
 # ── config ───────────────────────────────────────────────────────────────────
 _CFG_PATH = Path(__file__).parents[2] / "configs" / "config.yaml"
@@ -50,34 +56,15 @@ _PRIOR_LIST = {
 }
 
 # ── app state ────────────────────────────────────────────────────────────────
-_state: dict[str, Any] = {"ensemble": None, "pipeline": None, "demo_mode": True}
 
-
-def _try_load_models() -> None:
-    """Load ensemble + pipeline from disk; silently stay in demo mode if absent."""
-    try:
-        import joblib
-
-        if MODEL_PATH.exists() and PIPELINE_PATH.exists():
-            _state["ensemble"] = joblib.load(MODEL_PATH)
-            _state["pipeline"] = joblib.load(PIPELINE_PATH)
-            _state["demo_mode"] = False
-    except Exception:
-        pass
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    _try_load_models()
-    yield
 
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
+
 app = FastAPI(
     title="Scotland 2026 Election Forecast API",
     description="Voter-level vote-intention prediction and D'Hondt seat projection.",
     version=VERSION,
-    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -87,6 +74,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def load_model_if_updated():
+    global MODEL, PIPELINE, MODEL_MTIME
+
+    try:
+        mtime = os.path.getmtime(MODEL_PATH)
+    except FileNotFoundError:
+        return
+
+    if MODEL is None or MODEL_MTIME != mtime:
+        logging.info("Reloading model...")
+
+        MODEL = joblib.load(MODEL_PATH)
+        PIPELINE = joblib.load(PIPELINE_PATH)
+
+        MODEL_MTIME = mtime
+
+        logging.info("Model loaded successfully")
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -158,9 +162,9 @@ def _model_predict(voter: VoterFeatures) -> PredictionResponse:
 
     from src.features.pipeline import FEATURE_COLS
     X_raw = eng[FEATURE_COLS]
-    X = _state["pipeline"].transform(X_raw)
-    probs_arr = _state["ensemble"].predict_proba(X)[0]
-    classes = _state["ensemble"].classes_
+    X = PIPELINE.transform(X_raw)
+    probs_arr = MODEL.predict_proba(X)[0]
+    classes = MODEL.classes_
     probs = {str(c): round(float(p), 4) for c, p in zip(classes, probs_arr)}
     predicted = max(probs, key=lambda p: probs[p])
 
@@ -178,17 +182,21 @@ def _model_predict(voter: VoterFeatures) -> PredictionResponse:
 
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health() -> HealthResponse:
+    load_model_if_updated()
+
     return HealthResponse(
         status="ok",
-        model_loaded=not _state["demo_mode"],
-        version=VERSION,
+        model_loaded=MODEL is not None,
+        version=str(int(os.path.getmtime(MODEL_PATH))) if MODEL_PATH.exists() else "none"
     )
-
 
 @app.post("/predict", response_model=PredictionResponse, tags=["prediction"])
 def predict(voter: VoterFeatures) -> PredictionResponse:
-    if _state["demo_mode"]:
+    load_model_if_updated()
+
+    if MODEL is None or PIPELINE is None:
         return _demo_predict(voter)
+   
     return _model_predict(voter)
 
 
@@ -199,7 +207,9 @@ def predict_batch(req: BatchPredictRequest) -> BatchPredictResponse:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Batch size exceeds max {_CFG['api']['max_batch_size']}",
         )
-    fn = _demo_predict if _state["demo_mode"] else _model_predict
+    
+    load_model_if_updated()
+    fn = _demo_predict if MODEL is None or PIPELINE is None else _model_predict
     predictions = [fn(v) for v in req.voters]
     return BatchPredictResponse(predictions=predictions, n_voters=len(predictions))
 
@@ -249,10 +259,10 @@ def seats_projected() -> SeatProjectionResponse:
 @app.get("/model/info", response_model=ModelInfoResponse, tags=["meta"])
 def model_info() -> ModelInfoResponse:
     n_features = 0
-    run_id = None
-    if not _state["demo_mode"]:
+
+    if PIPELINE is not None:
         try:
-            n_features = _state["pipeline"].n_features_in_
+            n_features = PIPELINE.n_features_in_
         except AttributeError:
             pass
 
@@ -262,6 +272,6 @@ def model_info() -> ModelInfoResponse:
         meta_learner=_CFG["model"]["meta_learner"],
         classes=PARTIES,
         n_features=n_features,
-        is_loaded=not _state["demo_mode"],
-        mlflow_run_id=run_id,
+        is_loaded=MODEL is not None,
+        mlflow_run_id=None,
     )
