@@ -46,7 +46,7 @@ st.markdown("Validation-set metrics across all five base learners and the stacki
 mlflow_available = False
 try:
     import mlflow
-    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_tracking_uri("http://mlflow:5000")
     client = mlflow.tracking.MlflowClient()
     exp = client.get_experiment_by_name("scotland-2026-forecast")
     if exp:
