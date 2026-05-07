@@ -8,7 +8,12 @@ endpoint is always functional for testing and the Streamlit dashboard.
 
 from __future__ import annotations
 
+import datetime
+import json
 import os
+import subprocess
+import sys
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -27,6 +32,7 @@ from src.api.schemas import (
     MarginalsResponse,
     ModelInfoResponse,
     PredictionResponse,
+    RetrainStatusResponse,
     SeatProjectionResponse,
     VoterFeatures,
 )
@@ -40,6 +46,11 @@ PARTIES: list[str] = _CFG["model"]["classes"]
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/ensemble.pkl"))
 PIPELINE_PATH = Path(os.getenv("PIPELINE_PATH", "models/pipeline.pkl"))
 VERSION = "0.1.0"
+
+_RETRAIN_LOG = Path("/tmp/retrain.log")
+_LATEST_MODEL_PATH = Path("models/latest/ensemble.pkl")
+_LATEST_PIPELINE_PATH = Path("models/latest/pipeline.pkl")
+_METRICS_PATH = Path("metrics/train_metrics.json")
 
 # ── MRP prior probabilities (YouGov April 2026) ──────────────────────────────
 _PRIOR_CON = {
@@ -58,6 +69,9 @@ _state: dict[str, Any] = {
     "demo_mode": True,
     "marginals_cache": None,  # computed once after model load
 }
+
+_retrain_job: dict[str, Any] = {"status": "idle"}
+_retrain_lock = threading.Lock()
 
 
 def _try_load_models() -> None:
@@ -179,6 +193,52 @@ def _model_predict(voter: VoterFeatures) -> PredictionResponse:
         indep_economy_interaction=round(iei, 4),
         nhs_dissatisfaction=round(nd, 4),
     )
+
+
+# ── retrain worker ───────────────────────────────────────────────────────────
+
+def _run_retrain() -> None:
+    _retrain_job["status"] = "running"
+    _retrain_job["started_at"] = datetime.datetime.utcnow().isoformat()
+    try:
+        _RETRAIN_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with open(_RETRAIN_LOG, "w") as log_fh:
+            proc = subprocess.run(
+                [
+                    sys.executable, "scripts/train_models.py",
+                    "--n-trials", "20",
+                    "--model-dir", "models/latest",
+                ],
+                stdout=log_fh,
+                stderr=subprocess.STDOUT,
+            )
+
+        if proc.returncode != 0:
+            _retrain_job["status"] = "failed"
+            _retrain_job["error"] = f"Training process exited with code {proc.returncode}"
+            _retrain_job["finished_at"] = datetime.datetime.utcnow().isoformat()
+            return
+
+        metrics: dict[str, Any] = {}
+        if _METRICS_PATH.exists():
+            with open(_METRICS_PATH) as f:
+                metrics = json.load(f)
+
+        import joblib
+        if _LATEST_MODEL_PATH.exists() and _LATEST_PIPELINE_PATH.exists():
+            _state["ensemble"] = joblib.load(_LATEST_MODEL_PATH)
+            _state["pipeline"] = joblib.load(_LATEST_PIPELINE_PATH)
+            _state["demo_mode"] = False
+            _state["marginals_cache"] = None
+
+        _retrain_job["status"] = "complete"
+        _retrain_job["metrics"] = metrics
+        _retrain_job["finished_at"] = datetime.datetime.utcnow().isoformat()
+
+    except Exception as exc:
+        _retrain_job["status"] = "failed"
+        _retrain_job["error"] = str(exc)
+        _retrain_job["finished_at"] = datetime.datetime.utcnow().isoformat()
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -320,3 +380,34 @@ def model_info() -> ModelInfoResponse:
         is_loaded=not _state["demo_mode"],
         mlflow_run_id=run_id,
     )
+
+
+@app.post(
+    "/model/retrain",
+    response_model=RetrainStatusResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["meta"],
+)
+def retrain() -> RetrainStatusResponse:
+    with _retrain_lock:
+        if _retrain_job.get("status") in ("queued", "running"):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A retrain job is already in progress.",
+            )
+        _retrain_job.clear()
+        _retrain_job.update({
+            "status": "queued",
+            "started_at": None,
+            "finished_at": None,
+            "metrics": None,
+            "error": None,
+        })
+
+    threading.Thread(target=_run_retrain, daemon=True).start()
+    return RetrainStatusResponse(**_retrain_job)
+
+
+@app.get("/model/retrain/status", response_model=RetrainStatusResponse, tags=["meta"])
+def retrain_status() -> RetrainStatusResponse:
+    return RetrainStatusResponse(**_retrain_job)

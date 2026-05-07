@@ -121,3 +121,11 @@ class MarginalsResponse(BaseModel):
     n_marginal: int
     threshold_pp: float
     demo_mode: bool
+
+
+class RetrainStatusResponse(BaseModel):
+    status: str  # idle / queued / running / complete / failed
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    metrics: Optional[dict] = None
+    error: Optional[str] = None

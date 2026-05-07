@@ -9,10 +9,12 @@ available (standard CI / demo mode behaviour).
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
@@ -80,6 +82,68 @@ st.dataframe(
 )
 
 st.caption("Green highlight = best value per metric.  Targets based on synthetic 12,500-voter dataset.")
+
+st.divider()
+
+# ── Retrain section ───────────────────────────────────────────────────────────
+_API = "http://api:8000"
+
+if "retrain_polling" not in st.session_state:
+    st.session_state.retrain_polling = False
+if "retrain_result" not in st.session_state:
+    st.session_state.retrain_result = None
+
+with st.expander("Retrain Model", expanded=st.session_state.retrain_polling):
+    st.warning("Training takes 5–10 mins on the VM. Do not close this page.")
+
+    if st.session_state.retrain_polling:
+        try:
+            resp = requests.get(f"{_API}/retrain/status", timeout=5)
+            job = resp.json()
+        except Exception as exc:
+            st.error(f"Could not reach API: {exc}")
+            st.session_state.retrain_polling = False
+            job = {}
+
+        current = job.get("status", "idle")
+        if current in ("queued", "running"):
+            with st.spinner("Training in progress..."):
+                time.sleep(10)
+            st.rerun()
+        elif current == "complete":
+            st.session_state.retrain_polling = False
+            st.session_state.retrain_result = job
+            st.rerun()
+        elif current == "failed":
+            st.session_state.retrain_polling = False
+            st.session_state.retrain_result = job
+            st.rerun()
+    else:
+        result = st.session_state.retrain_result
+        if result is not None:
+            if result.get("status") == "complete":
+                m = result.get("metrics") or {}
+                f1 = m.get("f1_macro", m.get("test_f1_macro"))
+                acc = m.get("accuracy", m.get("test_accuracy"))
+                f1_str = f"{f1:.3f}" if isinstance(f1, (int, float)) else str(f1)
+                acc_str = f"{acc:.3f}" if isinstance(acc, (int, float)) else str(acc)
+                st.success(f"Training complete — F1 macro: {f1_str}, Accuracy: {acc_str}")
+            elif result.get("status") == "failed":
+                st.error(f"Training failed: {result.get('error') or 'unknown error'}")
+
+        if st.button("Start Retraining", type="primary"):
+            try:
+                resp = requests.post(f"{_API}/retrain", timeout=5)
+                if resp.status_code == 409:
+                    st.warning("A retrain job is already running — check back shortly.")
+                elif resp.status_code in (200, 202):
+                    st.session_state.retrain_polling = True
+                    st.session_state.retrain_result = None
+                    st.rerun()
+                else:
+                    st.error(f"Unexpected API response {resp.status_code}: {resp.text[:200]}")
+            except Exception as exc:
+                st.error(f"Could not reach API: {exc}")
 
 st.divider()
 
