@@ -1,181 +1,168 @@
-# Scotland 2026 Scottish Parliament Election Forecast
+# Research Centre Quality Classification
 
-An end-to-end MLOps pipeline that generates synthetic voter micro-data from
-YouGov MRP polling priors and trains a stacking ensemble to forecast the
-Scotland 2026 Scottish Parliament election result.
+## Overview
 
-## Architecture
+Unsupervised machine learning pipeline that classifies UK research centres
+into three quality tiers — **Premium**, **Standard**, and **Basic** — based
+on internal infrastructure and external healthcare access features.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Data layer                                │
-│  scripts/generate_data.py → src/data/generate_voters.py         │
-│  12,500 synthetic voters · Dirichlet noise · YouGov MRP priors  │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────┐
-│                    Feature pipeline                               │
-│  src/features/pipeline.py                                        │
-│  ColumnTransformer: scaler + OrdinalEncoder + OneHotEncoder      │
-│  Engineered: tactical_swing_index, indep_economy_interaction,    │
-│              nhs_dissatisfaction                                  │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────┐
-│                   Stacking ensemble                               │
-│  src/models/ensemble.py + src/models/base_models.py              │
-│  Base: XGBoost · LightGBM · CatBoost · RandomForest             │
-│  Meta: LogisticRegression   Tuning: Optuna (50 trials each)     │
-│  Tracking: MLflow                                                 │
-└──────────┬──────────────────────┬────────────────────────────────┘
-           │                      │
-┌──────────▼──────────┐  ┌────────▼───────────────────────────────┐
-│  D'Hondt allocation │  │        SHAP explainability              │
-│  src/models/dhondt  │  │  src/models/explainability.py          │
-│  73 con + 56 list   │  │  TreeExplainer → mean |SHAP|           │
-└──────────┬──────────┘  └────────────────────────────────────────┘
-           │
-┌──────────▼──────────────────────────────────────────────────────┐
-│                    Serving layer                                  │
-│  FastAPI (src/api/main.py)                                       │
-│  GET  /health  ·  GET  /model/info  ·  GET /seats/projected     │
-│  POST /predict  ·  POST /predict/batch                           │
-└──────────┬──────────────────────────────────────────────────────┘
-           │
-┌──────────▼──────────────────────────────────────────────────────┐
-│                   Streamlit dashboard                             │
-│  streamlit_app/Home.py  (KPIs, polling bars, seat chart)        │
-│  Page 1: Voter Simulator     Page 2: Seat Projections           │
-│  Page 3: Model Performance   Page 4: SHAP Explainability        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Branch table
-
-| Branch | Contents |
+| Item | Detail |
 |---|---|
-| `main` | Stable releases |
-| `develop` | Integration branch — all features merged here |
-| `feature/data-generation` | `src/data/`, `tests/unit/test_data_generation.py` |
-| `feature/feature-engineering` | `src/features/` |
-| `feature/model-development` | `src/models/`, `src/orchestration/` |
-| `feature/inference-api` | `src/api/`, `tests/unit/test_api.py` |
-| `feature/streamlit-dashboard` | `streamlit_app/` |
-| `feature/mlops-infra` | `docker/`, `.github/`, `scripts/`, `tests/unit/test_metrics.py` |
+| Dataset | 50 synthetic UK research centres across 5 cities |
+| Algorithm | K-Means clustering (k=3, silhouette score = 0.5519) |
+| Features | `internalFacilitiesCount`, `hospitals_10km`, `pharmacies_10km`, `facilityDiversity_10km`, `facilityDensity_10km` |
+| Deployment | FastAPI endpoint — `POST /predict` |
+| Bonus | Dockerfile · docker-compose · Geospatial map · Plotly dashboard · Claude AI assistant |
 
-## Quickstart
+---
+
+## Notebooks
+
+| File | Description |
+|---|---|
+| `EDA_and_Model.ipynb` | **Primary submission notebook** — required filename per assignment spec |
+| `Debabrata_Mishra_Research_Center_Quality_Classification.ipynb` | Same notebook — full named copy |
+
+> Both files are identical. Open either one —
+> `EDA_and_Model.ipynb` is the assignment-required filename.
+
+---
+
+## Setup
 
 ```bash
-# 1. Install dependencies
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate      # macOS/Linux
+venv\Scripts\activate         # Windows
+
+# Install all dependencies
 pip install -r requirements.txt
-
-# 2. Generate voter data
-python scripts/generate_data.py --n-voters 12500
-
-# 3. Start MLflow (optional)
-mlflow server --backend-store-uri sqlite:///mlruns/mlflow.db --port 5000
-
-# 4. Train the ensemble
-python scripts/train_models.py --n-trials 50
-
-# 5. Start the API
-uvicorn src.api.main:app --reload --port 8000
-
-# 6. Launch the dashboard
-streamlit run streamlit_app/Home.py
-
-# 7. Run all tests
-pytest tests/ -v
 ```
 
-## DVC Data Versioning
+---
 
-The ML pipeline is defined in `dvc.yaml` and managed by [DVC](https://dvc.org).
-Raw and processed data files are tracked by DVC (not committed to git).
+## Run
 
-### Run the full pipeline
+**Step 1 — Execute the notebook** to train and save `model_bundle.pkl`:
+
+Open `EDA_and_Model.ipynb` in Jupyter and run all cells:
 
 ```bash
-dvc repro
+jupyter notebook
 ```
 
-This executes the three stages in order:
-
-| Stage | Command | Outputs |
-|---|---|---|
-| `generate` | `python scripts/generate_data.py` | `data/raw/voters.parquet` |
-| `featurise` | `python scripts/featurise.py` | `data/processed/features.parquet`, `models/pipeline.pkl` |
-| `train` | `python scripts/train_models.py --n-trials 20` | `models/ensemble.pkl`, `metrics/train_metrics.json` |
-
-DVC skips stages whose inputs have not changed (content-addressed caching).
-
-### Compare metrics across runs
+**Step 2 — Start the API** (from the project folder with venv active):
 
 ```bash
-# Show metrics for current state
-dvc metrics show
-
-# Compare current HEAD with previous commit
-dvc metrics diff
+python -m uvicorn app:app --reload
 ```
 
-### Visualise the pipeline DAG
+> Use `python -m uvicorn` rather than `uvicorn` directly to ensure
+> the correct virtual environment is used.
+
+---
+
+## API Usage
+
+### Health check
 
 ```bash
-dvc dag
+curl http://localhost:8000/
 ```
 
-### Docker (all services)
+**Response:**
+```json
+{
+  "status": "ok",
+  "model": "K-Means (k=3)",
+  "features": ["internalFacilitiesCount", "hospitals_10km", "pharmacies_10km",
+               "facilityDiversity_10km", "facilityDensity_10km"],
+  "tiers": ["Premium", "Standard", "Basic"]
+}
+```
+
+### Predict quality tier
 
 ```bash
-cd docker
+curl -X POST http://localhost:8000/predict \
+     -H "Content-Type: application/json" \
+     -d '{
+           "internalFacilitiesCount": 9,
+           "hospitals_10km": 3,
+           "pharmacies_10km": 2,
+           "facilityDiversity_10km": 0.82,
+           "facilityDensity_10km": 0.45
+         }'
+```
+
+**Response:**
+```json
+{
+  "predictedCategory": "Premium"
+}
+```
+
+### Swagger UI
+
+Interactive API documentation available at:
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## Docker Deployment (Bonus)
+
+```bash
+# Build and run with docker-compose
 docker-compose up --build
+
+# API will be available at http://localhost:8000
 ```
 
-| Service | URL |
-|---|---|
-| FastAPI | http://localhost:8000/docs |
-| Streamlit | http://localhost:8501 |
-| MLflow | http://localhost:5000 |
+---
 
-## Model performance targets
+## File Structure
 
-| Model | F1-macro (val) | Brier score | Log-loss |
-|---|---|---|---|
-| XGBoost | 0.58 | 0.121 | 0.93 |
-| LightGBM | 0.57 | 0.124 | 0.95 |
-| CatBoost | 0.56 | 0.127 | 0.97 |
-| Random Forest | 0.54 | 0.135 | 1.05 |
-| Logistic Regression | 0.49 | 0.148 | 1.12 |
-| **Stacking Ensemble** | **0.62** | **0.112** | **0.88** |
+```
+research-center-assignment/
+│
+├── data/
+│   └── research_centers.csv
+│
+├── EDA_and_Model.ipynb                  ← primary submission notebook
+├── Debabrata_Mishra_Research_Center_Quality_Classification.ipynb
+├── app.py                               ← FastAPI endpoint
+├── model_bundle.pkl                     ← trained model (scaler + KMeans + tier_map)
+├── research_centers.csv                 ← dataset (root copy)
+├── research_centers_clustered.csv       ← enriched output with cluster + qualityTier
+├── requirements.txt
+├── README.md
+├── Dockerfile
+├── docker-compose.yaml
+├── .env.draft
+├── .gitignore
+└── .dockerignore
+```
 
-## Tech stack
+---
 
-| Layer | Technology |
-|---|---|
-| Data generation | NumPy Dirichlet, Pandas |
-| Feature engineering | scikit-learn ColumnTransformer |
-| ML | XGBoost, LightGBM, CatBoost, scikit-learn |
-| HPO | Optuna (TPE sampler) |
-| Experiment tracking | MLflow |
-| Seat allocation | D'Hondt AMS algorithm |
-| Explainability | SHAP (TreeExplainer) |
-| API | FastAPI + Uvicorn |
-| Dashboard | Streamlit + Plotly |
-| Containerisation | Docker + Compose |
-| CI | GitHub Actions (lint, unit tests, smoke tests) |
+## Requirements
 
-## Polling priors
+Key dependencies (see `requirements.txt` for full list):
 
-YouGov MRP · April 2026 · n = 3,925
+```
+fastapi            uvicorn[standard]    pandas
+numpy              scikit-learn         matplotlib
+seaborn            plotly               joblib
+anthropic          nbformat>=4.2.0      requests
+```
 
-| Party | Constituency | Regional list | Proj. seats |
-|---|---|---|---|
-| SNP | 35.6% | 29.1% | 67 |
-| Reform | 17.9% | 18.0% | 20 |
-| Labour | 16.3% | 15.3% | 15 |
-| Green | 6.0% | 8.5% | 11 |
-| Conservative | 10.3% | 11.1% | 9 |
-| Lib Dem | 8.0% | 9.0% | 7 |
+---
 
-Independence: Yes 46.6% · No 44.6% · Undecided 8.9%
+## Author
+
+**Debabrata Mishra**  
+GitHub: [dmishra27](https://github.com/dmishra27)  
+Repository: [Debabrata_Research_Center_Classification_Assignment](https://github.com/dmishra27/Debabrata_Research_Center_Classification_Assignment)

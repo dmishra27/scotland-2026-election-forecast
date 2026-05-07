@@ -6,5 +6,33 @@
   "f1_conservative": 0.3130,
   "f1_reform": 0.2522,
   "f1_green": 0.1598,
-  "f1_libdem": 0.1333
+  "f1_libdem": 0.1333,
+  "training_environment": "Oracle Cloud VM.Standard.E2.1.Micro (Ubuntu 20.04)",
+  "training_date": "2026-05-05",
+  "n_voters_train": 10000,
+  "n_voters_val": 2500,
+  "n_features": 18,
+  "model_type": "StackingClassifier",
+  "base_learners": ["xgboost", "lightgbm", "catboost", "random_forest"],
+  "meta_learner": "logistic_regression",
+  "optuna_trials": 50,
+  "seat_projection": {
+    "snp_constituency": 73,
+    "snp_regional": 0,
+    "snp_total": 73,
+    "reform_total": 16,
+    "labour_total": 16,
+    "conservative_total": 8,
+    "libdem_total": 8,
+    "green_total": 8,
+    "majority_threshold": 65,
+    "governing_party": "SNP",
+    "has_majority": true
+  },
+  "marginals": {
+    "n_marginal_seats": 56,
+    "threshold_pp": 5.0,
+    "tightest_seat": "Inverness and Nairn",
+    "tightest_margin_pp": 0.6
+  }
 }
