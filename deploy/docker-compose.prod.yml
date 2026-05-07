@@ -107,8 +107,10 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:
-      - api
-      - streamlit
+      api:
+        condition: service_healthy
+      streamlit:
+        condition: service_healthy
     deploy:
       resources:
         limits:

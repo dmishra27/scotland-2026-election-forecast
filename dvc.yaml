@@ -1,0 +1,32 @@
+stages:
+
+  generate:
+    cmd: python scripts/generate_data.py
+    deps:
+      - scripts/generate_data.py
+      - src/data/generate_voters.py
+    outs:
+      - data/raw/voters.parquet
+
+  featurise:
+    cmd: python scripts/featurise.py
+    deps:
+      - scripts/featurise.py
+      - src/features/pipeline.py
+      - data/raw/voters.parquet
+    outs:
+      - data/processed/features.parquet
+      - models/pipeline.pkl
+
+  train:
+    cmd: python scripts/train_models.py --n-trials 20
+    deps:
+      - scripts/train_models.py
+      - src/models/ensemble.py
+      - src/orchestration/train_pipeline.py
+      - data/processed/features.parquet
+    outs:
+      - models/ensemble.pkl
+    metrics:
+      - metrics/train_metrics.json:
+          cache: false

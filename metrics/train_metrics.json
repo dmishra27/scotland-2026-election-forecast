@@ -1,0 +1,10 @@
+{
+  "f1_macro": 0.3060,
+  "accuracy": 0.4032,
+  "f1_snp": 0.6156,
+  "f1_labour": 0.3623,
+  "f1_conservative": 0.3130,
+  "f1_reform": 0.2522,
+  "f1_green": 0.1598,
+  "f1_libdem": 0.1333
+}

@@ -1,0 +1,23 @@
+# DVC ignore file — patterns listed here are excluded from DVC tracking
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Test artefacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor artefacts
+.idea/
+.vscode/
+*.swp

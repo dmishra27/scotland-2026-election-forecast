@@ -88,6 +88,43 @@ streamlit run streamlit_app/Home.py
 pytest tests/ -v
 ```
 
+## DVC Data Versioning
+
+The ML pipeline is defined in `dvc.yaml` and managed by [DVC](https://dvc.org).
+Raw and processed data files are tracked by DVC (not committed to git).
+
+### Run the full pipeline
+
+```bash
+dvc repro
+```
+
+This executes the three stages in order:
+
+| Stage | Command | Outputs |
+|---|---|---|
+| `generate` | `python scripts/generate_data.py` | `data/raw/voters.parquet` |
+| `featurise` | `python scripts/featurise.py` | `data/processed/features.parquet`, `models/pipeline.pkl` |
+| `train` | `python scripts/train_models.py --n-trials 20` | `models/ensemble.pkl`, `metrics/train_metrics.json` |
+
+DVC skips stages whose inputs have not changed (content-addressed caching).
+
+### Compare metrics across runs
+
+```bash
+# Show metrics for current state
+dvc metrics show
+
+# Compare current HEAD with previous commit
+dvc metrics diff
+```
+
+### Visualise the pipeline DAG
+
+```bash
+dvc dag
+```
+
 ### Docker (all services)
 
 ```bash

@@ -24,18 +24,24 @@ htmlcov/
 .vscode/
 *.swp
 
-# Data artefacts
-data/raw/
-data/processed/
-*.parquet
+# Data artefacts (tracked by DVC, not git)
+data/raw/*.parquet
+data/processed/*.parquet
 *.csv
 
-# ML artefacts
+# ML artefacts (tracked by DVC, not git)
 mlruns/
 mlartifacts/
-/models/
-*.pkl
+models/*.pkl
+models/*.joblib
 *.joblib
+
+# DVC cache
+.dvc/cache
+.dvc/tmp
+
+# Temporary files
+/tmp
 
 # Logs
 logs/

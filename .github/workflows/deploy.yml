@@ -1,14 +1,26 @@
 name: CD — Deploy to Oracle Cloud
 
+# ── Required GitHub secrets ────────────────────────────────────────────────────
+# ORACLE_HOST    — public IP of the Oracle Cloud VM (e.g. 79.72.78.114)
+# ORACLE_USER    — SSH username on the VM (e.g. ubuntu or opc)
+# ORACLE_SSH_KEY — private SSH key (PEM format, no passphrase) that matches
+#                  a public key added to ~/.ssh/authorized_keys on the VM
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
-  push:
+  # Only deploy after all CI jobs pass on main
+  workflow_run:
+    workflows: ["CI"]
     branches: [main]
+    types: [completed]
 
 jobs:
   deploy:
     name: SSH deploy to Oracle VM
     runs-on: ubuntu-latest
     environment: production
+    # Gate: skip if CI failed
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Deploy via SSH
@@ -47,3 +59,10 @@ jobs:
             curl -sf http://localhost:5000/health | python3 -m json.tool || true
 
             echo "=== deploy complete ==="
+
+      - name: External health check via public IP
+        run: |
+          curl --retry 5 --retry-delay 10 --retry-all-errors \
+               -sf http://79.72.78.114/api/health \
+               | python3 -m json.tool
+          echo "Public health check passed."
