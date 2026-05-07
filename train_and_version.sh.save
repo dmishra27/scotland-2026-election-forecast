@@ -1,0 +1,73 @@
+nano train_and_version.sh#!/bin/bash
+
+set -e
+
+cd ~/scotland-2026-election-forecast
+source .venv/bin/activate
+
+echo "===================================="
+echo "TRAINING START: $(date)"
+echo "===================================="
+
+# Step 1: Generate data
+python3 scripts/generate_data.py
+
+# Step 2: Train models
+python3 scripts/train_models.py --n-trials 3
+
+# Step 3: Create version folder
+VERSION=$(date +%Y%m%d_%H%M%S)
+VERSION_DIR=models/versions/$VERSION
+mkdir -p $VERSION_DIR
+
+# Step 4: Copy model files (NOT move)
+cp models/ensemble.pkl $VERSION_DIR/
+cp models/pipeline.pkl $VERSION_DIR/
+cp models/shap_importance.csv $VERSION_DIR/
+
+# Step 5: Atomic update of latest (zero downtime safe)
+TMP_DIR=models/latest_tmp
+rm -rf $TMP_DIR
+mkdir -p $TMP_DIR
+
+cp $VERSION_DIR/* $TMP_DIR/
+
+rm -rf models/latest/*
+mv $TMP_DIR/* models/latest/
+rmdir $TMP_DIR
+
+echo "===================================="
+echo "TRAINING COMPLETE: $VERSION"
+echo "===================================="#!/bin/bash
+
+set -e
+
+cd ~/scotland-2026-election-forecast
+source .venv/bin/activate
+
+echo "===================================="
+echo "TRAINING START: $(date)"
+echo "===================================="
+
+# Step 1: Generate data
+python3 scripts/generate_data.py
+
+# Step 2: Train models
+python3 scripts/train_models.py --n-trials 3
+
+# Step 3: Create version folder
+VERSION=$(date +%Y%m%d_%H%M%S)
+mkdir -p models/versions/$VERSION
+
+# Step 4: Move model files into version folder
+mv models/ensemble.pkl models/versions/$VERSION/
+mv models/pipeline.pkl models/versions/$VERSION/
+mv models/shap_importance.csv models/versions/$VERSION/
+
+# Step 5: Update latest pointer
+rm -rf models/latest/*
+cp models/versions/$VERSION/* models/latest/
+
+echo "===================================="
+echo "TRAINING COMPLETE: $VERSION"
+echo "===================================="

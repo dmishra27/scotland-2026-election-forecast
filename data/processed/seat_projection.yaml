@@ -1,0 +1,14 @@
+constituency:
+  Conservative: 0
+  Green: 0
+  Labour: 0
+  LibDem: 0
+  Reform: 0
+  SNP: 73
+regional:
+  Conservative: 8
+  Green: 16
+  Labour: 16
+  LibDem: 8
+  Reform: 8
+  SNP: 0
