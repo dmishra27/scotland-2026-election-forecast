@@ -103,3 +103,21 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     version: str
+
+
+class MarginalSeatResponse(BaseModel):
+    constituency: str
+    region: str
+    leading_party: str
+    second_party: str
+    majority_margin_pp: float
+    swing_needed_pp: float
+    is_marginal: bool
+    tactical_vote_recommendation: str
+
+
+class MarginalsResponse(BaseModel):
+    seats: list[MarginalSeatResponse]
+    n_marginal: int
+    threshold_pp: float
+    demo_mode: bool

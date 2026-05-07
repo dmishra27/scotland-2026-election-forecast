@@ -9,15 +9,13 @@ endpoint is always functional for testing and the Streamlit dashboard.
 from __future__ import annotations
 
 import os
-import joblib
-
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
+import numpy as np
 import pandas as pd
 import yaml
-import logging
-logging.basicConfig(level=logging.INFO)
-
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,15 +23,13 @@ from src.api.schemas import (
     BatchPredictRequest,
     BatchPredictResponse,
     HealthResponse,
+    MarginalSeatResponse,
+    MarginalsResponse,
     ModelInfoResponse,
     PredictionResponse,
     SeatProjectionResponse,
     VoterFeatures,
 )
-
-MODEL = None
-PIPELINE = None
-MODEL_MTIME = None
 
 # ── config ───────────────────────────────────────────────────────────────────
 _CFG_PATH = Path(__file__).parents[2] / "configs" / "config.yaml"
@@ -56,15 +52,39 @@ _PRIOR_LIST = {
 }
 
 # ── app state ────────────────────────────────────────────────────────────────
+_state: dict[str, Any] = {
+    "ensemble": None,
+    "pipeline": None,
+    "demo_mode": True,
+    "marginals_cache": None,  # computed once after model load
+}
 
+
+def _try_load_models() -> None:
+    """Load ensemble + pipeline from disk; silently stay in demo mode if absent."""
+    try:
+        import joblib
+
+        if MODEL_PATH.exists() and PIPELINE_PATH.exists():
+            _state["ensemble"] = joblib.load(MODEL_PATH)
+            _state["pipeline"] = joblib.load(PIPELINE_PATH)
+            _state["demo_mode"] = False
+    except Exception:
+        pass
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _try_load_models()
+    yield
 
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
-
 app = FastAPI(
     title="Scotland 2026 Election Forecast API",
     description="Voter-level vote-intention prediction and D'Hondt seat projection.",
     version=VERSION,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -74,23 +94,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def load_model_if_updated():
-    global MODEL, PIPELINE, MODEL_MTIME
-
-    try:
-        mtime = os.path.getmtime(MODEL_PATH)
-    except FileNotFoundError:
-        return
-
-    if MODEL is None or MODEL_MTIME != mtime:
-        logging.info("Reloading model...")
-
-        MODEL = joblib.load(MODEL_PATH)
-        PIPELINE = joblib.load(PIPELINE_PATH)
-
-        MODEL_MTIME = mtime
-
-        logging.info("Model loaded successfully")
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -162,9 +165,9 @@ def _model_predict(voter: VoterFeatures) -> PredictionResponse:
 
     from src.features.pipeline import FEATURE_COLS
     X_raw = eng[FEATURE_COLS]
-    X = PIPELINE.transform(X_raw)
-    probs_arr = MODEL.predict_proba(X)[0]
-    classes = MODEL.classes_
+    X = _state["pipeline"].transform(X_raw)
+    probs_arr = _state["ensemble"].predict_proba(X)[0]
+    classes = _state["ensemble"].classes_
     probs = {str(c): round(float(p), 4) for c, p in zip(classes, probs_arr)}
     predicted = max(probs, key=lambda p: probs[p])
 
@@ -182,22 +185,23 @@ def _model_predict(voter: VoterFeatures) -> PredictionResponse:
 
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health() -> HealthResponse:
-    load_model_if_updated()
-
     return HealthResponse(
         status="ok",
-        model_loaded=MODEL is not None,
-        version=str(int(os.path.getmtime(MODEL_PATH))) if MODEL_PATH.exists() else "none"
+        model_loaded=not _state["demo_mode"],
+        version=VERSION,
     )
+
 
 @app.post("/predict", response_model=PredictionResponse, tags=["prediction"])
 def predict(voter: VoterFeatures) -> PredictionResponse:
-    load_model_if_updated()
-
-    if MODEL is None or PIPELINE is None:
-        return _demo_predict(voter)
-   
-    return _model_predict(voter)
+    result = _demo_predict(voter) if _state["demo_mode"] else _model_predict(voter)
+    try:
+        from src.monitoring.drift import log_prediction
+        top_prob = max(result.probabilities.values())
+        log_prediction(voter.model_dump(), result.predicted_party, top_prob)
+    except Exception:
+        pass
+    return result
 
 
 @app.post("/predict/batch", response_model=BatchPredictResponse, tags=["prediction"])
@@ -207,9 +211,7 @@ def predict_batch(req: BatchPredictRequest) -> BatchPredictResponse:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Batch size exceeds max {_CFG['api']['max_batch_size']}",
         )
-    
-    load_model_if_updated()
-    fn = _demo_predict if MODEL is None or PIPELINE is None else _model_predict
+    fn = _demo_predict if _state["demo_mode"] else _model_predict
     predictions = [fn(v) for v in req.voters]
     return BatchPredictResponse(predictions=predictions, n_voters=len(predictions))
 
@@ -256,13 +258,56 @@ def seats_projected() -> SeatProjectionResponse:
     )
 
 
+@app.get("/seats/marginals", response_model=MarginalsResponse, tags=["seats"])
+def seats_marginals() -> MarginalsResponse:
+    """
+    Return the top 20 tightest marginal constituencies.
+
+    In demo mode uses YouGov MRP priors with Dirichlet noise.
+    In model mode uses the trained ensemble to simulate constituency-level
+    vote shares (result cached after first call to avoid repeated inference).
+    """
+    from src.models.marginals import identify_marginals, _demo_marginals
+
+    threshold = 5.0
+
+    if _state["demo_mode"]:
+        all_seats = _demo_marginals(threshold=threshold)
+    else:
+        if _state["marginals_cache"] is None:
+            _state["marginals_cache"] = identify_marginals(
+                _state["ensemble"], _state["pipeline"], threshold=threshold
+            )
+        all_seats = _state["marginals_cache"]
+
+    top20 = all_seats[:20]
+    return MarginalsResponse(
+        seats=[
+            MarginalSeatResponse(
+                constituency=s.constituency,
+                region=s.region,
+                leading_party=s.leading_party,
+                second_party=s.second_party,
+                majority_margin_pp=s.majority_margin_pp,
+                swing_needed_pp=s.swing_needed_pp,
+                is_marginal=s.is_marginal,
+                tactical_vote_recommendation=s.tactical_vote_recommendation,
+            )
+            for s in top20
+        ],
+        n_marginal=sum(1 for s in all_seats if s.is_marginal),
+        threshold_pp=threshold,
+        demo_mode=_state["demo_mode"],
+    )
+
+
 @app.get("/model/info", response_model=ModelInfoResponse, tags=["meta"])
 def model_info() -> ModelInfoResponse:
     n_features = 0
-
-    if PIPELINE is not None:
+    run_id = None
+    if not _state["demo_mode"]:
         try:
-            n_features = PIPELINE.n_features_in_
+            n_features = _state["pipeline"].n_features_in_
         except AttributeError:
             pass
 
@@ -272,6 +317,6 @@ def model_info() -> ModelInfoResponse:
         meta_learner=_CFG["model"]["meta_learner"],
         classes=PARTIES,
         n_features=n_features,
-        is_loaded=MODEL is not None,
-        mlflow_run_id=None,
+        is_loaded=not _state["demo_mode"],
+        mlflow_run_id=run_id,
     )
