@@ -187,6 +187,9 @@ def _demo_marginals(threshold: float = 5.0) -> list[MarginalSeat]:
     return sorted(seats, key=lambda s: s.majority_margin_pp)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 def identify_marginals(
     ensemble: Any,
     pipeline: Any,
@@ -251,3 +254,70 @@ def identify_marginals(
             )
 
     return sorted(seats, key=lambda s: s.majority_margin_pp)
+
+
+def _demo_constituency_results(threshold: float = 5.0) -> list[dict]:
+    """Return demo constituency results with full vote_shares from Dirichlet priors."""
+    rng = np.random.default_rng(42)
+    results = []
+    for region, constituencies in CONSTITUENCIES.items():
+        for constituency in constituencies:
+            noise = rng.dirichlet(_PRIOR_PROBS * 20)
+            vote_shares = {p: round(float(v), 4) for p, v in zip(PARTIES, noise)}
+            sorted_parties = sorted(vote_shares, key=lambda p: vote_shares[p], reverse=True)
+            winner, second = sorted_parties[0], sorted_parties[1]
+            margin = round((vote_shares[winner] - vote_shares[second]) * 100, 2)
+            is_marginal = margin < threshold
+            results.append({
+                "constituency": constituency,
+                "region": region,
+                "predicted_winner": winner,
+                "vote_shares": vote_shares,
+                "majority_margin_pp": margin,
+                "is_marginal": is_marginal,
+                "tactical_vote_recommendation": second if is_marginal else None,
+            })
+    return results
+
+
+def constituency_results(
+    ensemble: Any,
+    pipeline: Any,
+    threshold: float = 5.0,
+    n_voters_per_constituency: int = 80,
+) -> list[dict]:
+    """Return constituency-level results including full vote_shares from the trained ensemble."""
+    from src.data.generate_voters import generate_voters
+    from src.features.pipeline import engineer_features, FEATURE_COLS
+
+    results = []
+    for region, constituencies in CONSTITUENCIES.items():
+        for constituency in constituencies:
+            seed = abs(hash(constituency)) % (2**31)
+            df = generate_voters(n_voters=n_voters_per_constituency, random_seed=seed)
+            df["region"] = region
+
+            df_eng = engineer_features(df.copy())
+            X_raw = df_eng[FEATURE_COLS]
+            X = pipeline.transform(X_raw)
+
+            probs_arr = ensemble.predict_proba(X)
+            classes = ensemble.classes_
+
+            mean_probs = probs_arr.mean(axis=0)
+            vote_shares = {str(c): round(float(p), 4) for c, p in zip(classes, mean_probs)}
+            sorted_parties = sorted(vote_shares, key=lambda p: vote_shares[p], reverse=True)
+            winner, second = sorted_parties[0], sorted_parties[1]
+            margin = round((vote_shares[winner] - vote_shares[second]) * 100, 2)
+            is_marginal = margin < threshold
+
+            results.append({
+                "constituency": constituency,
+                "region": region,
+                "predicted_winner": winner,
+                "vote_shares": vote_shares,
+                "majority_margin_pp": margin,
+                "is_marginal": is_marginal,
+                "tactical_vote_recommendation": second if is_marginal else None,
+            })
+    return results

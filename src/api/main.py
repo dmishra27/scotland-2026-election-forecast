@@ -16,7 +16,7 @@ import sys
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -27,6 +27,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.schemas import (
     BatchPredictRequest,
     BatchPredictResponse,
+    ConstituenciesResponse,
+    ConstituencyResult,
     HealthResponse,
     MarginalSeatResponse,
     MarginalsResponse,
@@ -67,7 +69,8 @@ _state: dict[str, Any] = {
     "ensemble": None,
     "pipeline": None,
     "demo_mode": True,
-    "marginals_cache": None,  # computed once after model load
+    "marginals_cache": None,       # computed once after model load
+    "constituencies_cache": None,  # computed once after model load
 }
 
 _retrain_job: dict[str, Any] = {"status": "idle"}
@@ -230,6 +233,7 @@ def _run_retrain() -> None:
             _state["pipeline"] = joblib.load(_LATEST_PIPELINE_PATH)
             _state["demo_mode"] = False
             _state["marginals_cache"] = None
+            _state["constituencies_cache"] = None
 
         _retrain_job["status"] = "complete"
         _retrain_job["metrics"] = metrics
@@ -357,6 +361,44 @@ def seats_marginals() -> MarginalsResponse:
         ],
         n_marginal=sum(1 for s in all_seats if s.is_marginal),
         threshold_pp=threshold,
+        demo_mode=_state["demo_mode"],
+    )
+
+
+@app.get("/seats/constituencies", response_model=ConstituenciesResponse, tags=["seats"])
+def seats_constituencies(search: Optional[str] = None) -> ConstituenciesResponse:
+    """
+    Return predicted results for all 73 Scottish Parliament constituency seats.
+
+    In demo mode uses YouGov MRP priors with Dirichlet noise (seed=42).
+    In model mode uses the trained ensemble to simulate constituency-level
+    vote shares (result cached after first call to avoid repeated inference).
+
+    Optional ?search=<string> filters by case-insensitive partial match on constituency name.
+    """
+    from src.models.marginals import _demo_constituency_results, constituency_results
+
+    threshold = 5.0
+
+    if _state["demo_mode"]:
+        raw = _demo_constituency_results(threshold=threshold)
+    else:
+        if _state["constituencies_cache"] is None:
+            _state["constituencies_cache"] = constituency_results(
+                _state["ensemble"], _state["pipeline"], threshold=threshold
+            )
+        raw = _state["constituencies_cache"]
+
+    if search is not None:
+        term = search.lower()
+        raw = [r for r in raw if term in r["constituency"].lower()]
+
+    constituencies = [ConstituencyResult(**r) for r in raw]
+    return ConstituenciesResponse(
+        constituencies=constituencies,
+        n_constituencies=73,
+        n_results=len(constituencies),
+        search_term=search,
         demo_mode=_state["demo_mode"],
     )
 

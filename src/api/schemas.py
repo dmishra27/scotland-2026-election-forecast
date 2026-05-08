@@ -129,3 +129,21 @@ class RetrainStatusResponse(BaseModel):
     finished_at: Optional[str] = None
     metrics: Optional[dict] = None
     error: Optional[str] = None
+
+
+class ConstituencyResult(BaseModel):
+    constituency: str
+    region: str
+    predicted_winner: str
+    vote_shares: dict[str, float]
+    majority_margin_pp: float
+    is_marginal: bool
+    tactical_vote_recommendation: Optional[str]
+
+
+class ConstituenciesResponse(BaseModel):
+    constituencies: list[ConstituencyResult]
+    n_constituencies: int
+    n_results: int
+    search_term: Optional[str]
+    demo_mode: bool
