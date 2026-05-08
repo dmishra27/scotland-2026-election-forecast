@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 @click.option("--model-dir", default="models", show_default=True)
 @click.option("--tracking-uri", default=None, show_default=True, help="MLflow tracking URI (omit to use local file store)")
 @click.option("--experiment", default="scotland-2026-forecast", show_default=True)
+
 def main(data_path, n_voters, seed, n_trials, model_dir, tracking_uri, experiment):
     """Train stacking ensemble for Scotland 2026 election forecast."""
     import json
@@ -41,7 +42,13 @@ def main(data_path, n_voters, seed, n_trials, model_dir, tracking_uri, experimen
         click.echo(f"  {k:<30} {v}")
 
     click.echo(f"\nModels saved to {model_dir}/")
+    metrics_path = Path("metrics/train_metrics.json")
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(metrics_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    click.echo(f"Metrics saved to {metrics_path}")
     click.echo("Done.")
+    sys.exit(0)
 
 
 if __name__ == "__main__":

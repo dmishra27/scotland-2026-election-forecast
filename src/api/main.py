@@ -206,8 +206,8 @@ def _run_retrain() -> None:
             proc = subprocess.run(
                 [
                     sys.executable, "scripts/train_models.py",
-                    "--n-trials", "20",
-                    "--model-dir", "models/latest",
+                    "--n-trials", "1",
+                    "--n-voters", "5000", "--model-dir", "models/latest",
                 ],
                 stdout=log_fh,
                 stderr=subprocess.STDOUT,

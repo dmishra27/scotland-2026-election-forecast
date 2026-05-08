@@ -14,6 +14,7 @@ COPY configs/ ./configs/
 # models/ is mounted as a named volume in production;
 # copy here provides a fallback for standalone docker run.
 COPY models/  ./models/
+COPY scripts/ ./scripts/
 
 ENV PYTHONPATH=/app
 ENV MODEL_PATH=/app/models/ensemble.pkl
