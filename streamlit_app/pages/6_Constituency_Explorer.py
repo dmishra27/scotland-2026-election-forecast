@@ -139,8 +139,9 @@ if n_results == 1:
 
     with chart_col:
         vote_shares: dict[str, float] = c["vote_shares"]
-        parties = list(vote_shares.keys())
-        shares = [vote_shares[p] for p in parties]
+        sorted_items = sorted(vote_shares.items(), key=lambda x: x[1], reverse=True)
+        parties = [p for p, _ in sorted_items]
+        shares = [v * 100 for _, v in sorted_items]
         colours = [PARTY_COLOURS.get(p, "#888888") for p in parties]
 
         fig = go.Figure(
