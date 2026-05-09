@@ -25,6 +25,120 @@ PARTY_COLOURS = {
     "Green": "#27AE60",
 }
 
+# Certified Electoral Management Board results — 8 May 2026, all 129 seats declared.
+ACTUAL_RESULTS: dict[str, dict] = {
+    "Orkney Islands": {
+        "actual_winner": "LibDem",
+        "actual_majority": 5560,
+        "actual_majority_pp": 54.07,
+        "turnout_pct": 57.64,
+        "actual_shares": {
+            "LibDem": 70.22, "SNP": 16.15, "Reform": 8.21,
+            "Conservative": 3.48, "Labour": 1.94,
+        },
+    },
+    "Inverclyde": {
+        "actual_winner": "SNP",
+        "actual_majority": 5317,
+        "actual_majority_pp": 16.60,
+        "turnout_pct": 51.55,
+        "actual_shares": {
+            "SNP": 44.32, "Labour": 27.72, "Reform": 17.64,
+            "LibDem": 6.10, "Conservative": 4.22,
+        },
+    },
+    "Inverness and Nairn": {
+        "actual_winner": "SNP",
+        "actual_majority": 427,
+        "actual_majority_pp": 1.16,
+        "turnout_pct": 54.54,
+        "actual_shares": {
+            "SNP": 30.39, "LibDem": 29.22, "Independent": 21.34,
+            "Reform": 10.32, "Labour": 4.69, "Conservative": 3.74,
+        },
+    },
+    "Strathkelvin and Bearsden": {
+        "actual_winner": "LibDem",
+        "actual_majority": 2572,
+        "actual_majority_pp": 6.47,
+        "turnout_pct": 62.72,
+        "actual_shares": {
+            "LibDem": 39.46, "SNP": 33.00, "Labour": 11.76,
+            "Reform": 10.44, "Conservative": 5.33,
+        },
+    },
+    "Edinburgh Central": {
+        "actual_winner": "Green",
+        "actual_majority": 4582,
+        "actual_majority_pp": 13.00,
+        "turnout_pct": 54.54,
+        "actual_shares": {
+            "Green": 35.98, "Labour": 22.98, "SNP": 21.86,
+            "Conservative": 6.42, "LibDem": 6.15, "Reform": 5.32,
+        },
+    },
+    "Na h-Eileanan an Iar": {
+        "actual_winner": "Labour",
+        "actual_majority": 154,
+        "actual_majority_pp": 1.25,
+        "turnout_pct": 56.70,
+        "actual_shares": {
+            "Labour": 37.72, "SNP": 36.48, "Reform": 13.14,
+            "LibDem": 6.57, "Conservative": 4.80,
+        },
+    },
+    "Glasgow Southside": {
+        "actual_winner": "Green",
+        "actual_majority": 3101,
+        "actual_majority_pp": 8.05,
+        "turnout_pct": 59.09,
+        "actual_shares": {
+            "Green": 36.49, "SNP": 28.43, "Labour": 18.96,
+            "Reform": 7.84, "Conservative": 3.59, "LibDem": 2.97,
+        },
+    },
+    "Fife North East": {
+        "actual_winner": "LibDem",
+        "actual_majority": 13474,
+        "actual_majority_pp": 40.22,
+        "turnout_pct": 58.42,
+        "actual_shares": {
+            "LibDem": 63.72, "SNP": 23.51, "Reform": 7.53,
+            "Conservative": 2.79, "Labour": 2.44,
+        },
+    },
+    "Edinburgh Southern": {
+        "actual_winner": "Labour",
+        "actual_majority": 4963,
+        "actual_majority_pp": 12.55,
+        "turnout_pct": 60.98,
+        "actual_shares": {
+            "Labour": 42.88, "SNP": 30.33, "Conservative": 8.65,
+            "LibDem": 8.43, "Reform": 8.38,
+        },
+    },
+    "Aberdeenshire West": {
+        "actual_winner": "Conservative",
+        "actual_majority": 5784,
+        "actual_majority_pp": 15.62,
+        "turnout_pct": 60.47,
+        "actual_shares": {
+            "Conservative": 42.92, "SNP": 27.30, "Reform": 14.76,
+            "LibDem": 10.79, "Labour": 4.24,
+        },
+    },
+    "Dumbarton": {
+        "actual_winner": "Labour",
+        "actual_majority": 1786,
+        "actual_majority_pp": 5.58,
+        "turnout_pct": 56.84,
+        "actual_shares": {
+            "Labour": 39.81, "SNP": 34.23, "Reform": 15.74,
+            "Conservative": 4.27, "LibDem": 3.73,
+        },
+    },
+}
+
 st.set_page_config(page_title="Constituency Explorer", page_icon="🗺️", layout="wide")
 st.title("🗺️ Constituency Explorer")
 st.markdown(
@@ -163,6 +277,95 @@ if n_results == 1:
             showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
+
+    # ── Actual 2026 results ───────────────────────────────────────────────────
+    actual = ACTUAL_RESULTS.get(c["constituency"])
+    if actual:
+        st.divider()
+        predicted_winner = c["predicted_winner"]
+        actual_winner = actual["actual_winner"]
+
+        if predicted_winner != actual_winner:
+            st.warning(
+                f"⚠️ Model predicted **{predicted_winner}** — "
+                f"actual winner was **{actual_winner}**"
+            )
+
+        st.subheader("🗳️ Actual Result (8 May 2026)")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Actual Winner", actual_winner)
+        m2.metric("Actual Majority", f"{actual['actual_majority_pp']:.2f} pp")
+        m3.metric("Turnout", f"{actual['turnout_pct']:.1f}%")
+
+        act_items = sorted(actual["actual_shares"].items(), key=lambda x: x[1], reverse=True)
+        act_parties = [p for p, _ in act_items]
+        act_shares_vals = [v for _, v in act_items]
+        act_colours = [PARTY_COLOURS.get(p, "#888888") for p in act_parties]
+
+        fig_act = go.Figure(
+            go.Bar(
+                x=act_parties,
+                y=act_shares_vals,
+                marker_color=act_colours,
+                text=[f"{v:.1f}%" for v in act_shares_vals],
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>Vote share: %{y:.1f}%<extra></extra>",
+            )
+        )
+        fig_act.update_layout(
+            title="Actual vote shares (%)",
+            yaxis_title="Vote share (%)",
+            yaxis_range=[0, max(act_shares_vals) * 1.2],
+            height=320,
+            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_act, use_container_width=True)
+
+        # ── Deviation table ───────────────────────────────────────────────────
+        st.subheader("📊 Model vs Actual Deviation")
+        pred_shares_pct: dict[str, float] = {p: v * 100 for p, v in c["vote_shares"].items()}
+        all_parties_dev = sorted(
+            set(pred_shares_pct) | set(actual["actual_shares"]),
+            key=lambda p: abs(
+                pred_shares_pct.get(p, 0.0) - actual["actual_shares"].get(p, 0.0)
+            ),
+            reverse=True,
+        )
+        dev_rows = [
+            {
+                "Party": p,
+                "Predicted %": pred_shares_pct.get(p, 0.0),
+                "Actual %": actual["actual_shares"].get(p, 0.0),
+                "Deviation (pp)": (
+                    pred_shares_pct.get(p, 0.0) - actual["actual_shares"].get(p, 0.0)
+                ),
+            }
+            for p in all_parties_dev
+        ]
+        dev_df = pd.DataFrame(dev_rows)
+
+        def _colour_deviation(val: float) -> str:
+            if abs(val) > 5:
+                return "background-color:#FADBD8; color:#C0392B"
+            if abs(val) >= 2:
+                return "background-color:#FDEBD0; color:#E67E22"
+            return "background-color:#D5F5E3; color:#1E8449"
+
+        dev_styled = (
+            dev_df.style
+            .map(_colour_deviation, subset=["Deviation (pp)"])
+            .format({"Predicted %": "{:.1f}", "Actual %": "{:.1f}", "Deviation (pp)": "{:+.2f}"})
+            .set_properties(**{"font-size": "13px"})
+        )
+        st.dataframe(dev_styled, use_container_width=True, hide_index=True)
+        st.caption("Positive = model overestimated; Negative = model underestimated")
+    else:
+        st.divider()
+        st.info(
+            "Actual 2026 results not yet loaded for this constituency. "
+            "Full results: [ELECTION_RESULTS.md](ELECTION_RESULTS.md)"
+        )
 
 st.divider()
 st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
