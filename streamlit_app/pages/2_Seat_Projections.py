@@ -85,6 +85,65 @@ st.warning(
 
 st.divider()
 
+# ── Three-way comparison table ─────────────────────────────────────────────────
+st.subheader("📊 Three-Way Comparison: Prior vs Model vs Actual")
+st.caption(
+    "YouGov MRP prior (pre-election polling) · "
+    "ML model (stacking ensemble trained on synthetic data) · "
+    "Actual certified result (8 May 2026)"
+)
+
+_CMP_ROWS = [
+    {"Party": "SNP",          "YouGov Prior": 67,  "ML Model (v1.5.0)": 73,  "Actual Result": 58,  "Model Error": -15, "Prior Error": -9},
+    {"Party": "Labour",       "YouGov Prior": 15,  "ML Model (v1.5.0)": 16,  "Actual Result": 17,  "Model Error":   1, "Prior Error":  2},
+    {"Party": "Reform",       "YouGov Prior": 20,  "ML Model (v1.5.0)": 16,  "Actual Result": 17,  "Model Error":   1, "Prior Error": -3},
+    {"Party": "Green",        "YouGov Prior": 11,  "ML Model (v1.5.0)":  8,  "Actual Result": 15,  "Model Error":   7, "Prior Error":  4},
+    {"Party": "Conservative", "YouGov Prior":  9,  "ML Model (v1.5.0)":  8,  "Actual Result": 12,  "Model Error":   4, "Prior Error":  3},
+    {"Party": "LibDem",       "YouGov Prior":  7,  "ML Model (v1.5.0)":  8,  "Actual Result": 10,  "Model Error":   2, "Prior Error":  3},
+    {"Party": "Total",        "YouGov Prior": 129, "ML Model (v1.5.0)": 129, "Actual Result": 129, "Model Error":   0, "Prior Error":  0},
+]
+df_cmp = pd.DataFrame(_CMP_ROWS)
+
+
+def _colour_error(val: int) -> str:
+    try:
+        a = abs(int(val))
+    except (ValueError, TypeError):
+        return ""
+    if a > 5:
+        return "background-color:#FADBD8; color:#C0392B; font-weight:bold"
+    if a >= 2:
+        return "background-color:#FDEBD0; color:#E67E22; font-weight:bold"
+    return "background-color:#D5F5E3; color:#1E8449"
+
+
+def _colour_cmp_row(row: pd.Series) -> list[str]:
+    c = PARTY_COLOURS.get(row["Party"], "#aaaaaa")
+    return [f"background-color:{c}22"] + [""] * (len(row) - 1)
+
+
+cmp_styled = (
+    df_cmp.style
+    .apply(_colour_cmp_row, axis=1)
+    .map(_colour_error, subset=["Model Error", "Prior Error"])
+    .format({
+        "YouGov Prior": "{:d}",
+        "ML Model (v1.5.0)": "{:d}",
+        "Actual Result": "{:d}",
+        "Model Error": "{:+d}",
+        "Prior Error": "{:+d}",
+    })
+    .set_properties(**{"font-size": "13px"})
+)
+st.dataframe(cmp_styled, use_container_width=True, hide_index=True)
+st.info(
+    "Model Error = ML Model minus Actual. Prior Error = YouGov Prior minus Actual. "
+    "The ML model's primary failure was SNP overestimation (−15) due to no incumbency modelling. "
+    "The YouGov prior was closer on SNP (−9) but underestimated Green (+4) and LibDem (+3)."
+)
+
+st.divider()
+
 # ── 2021 vs 2026 grouped bar ───────────────────────────────────────────────────
 st.markdown("### 2021 result vs 2026 projection")
 all_parties = sorted(set(SEATS_2026) | set(SEATS_2021), key=lambda p: -SEATS_2026.get(p, 0))
