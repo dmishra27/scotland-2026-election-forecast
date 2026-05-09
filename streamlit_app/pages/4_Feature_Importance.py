@@ -66,8 +66,8 @@ DEMO_SHAP = pd.DataFrame({
     ],
 })
 
-st.set_page_config(page_title="SHAP Explainability", page_icon="🔍", layout="wide")
-st.title("🔍 SHAP Feature Importance")
+st.set_page_config(page_title="Feature Importance", page_icon="📊", layout="wide")
+st.title("📊 Feature Importance")
 st.markdown("Mean absolute SHAP values — how much each feature shifts the predicted vote probability.")
 
 # ── load data ─────────────────────────────────────────────────────────────────
