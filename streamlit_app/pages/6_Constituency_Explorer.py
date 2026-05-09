@@ -266,10 +266,11 @@ def _render_detail_card(c: dict) -> None:
     info_col, chart_col = st.columns([1, 2])
     with info_col:
         st.markdown(f"**Region:** {c['region']}")
+        _pw = c["predicted_winner"]
+        _pw_colour = PARTY_COLOURS.get(_pw, "#888")
         st.markdown(
             f"**Predicted winner:** "
-            f"<span style='color:{PARTY_COLOURS.get(c[\"predicted_winner\"], \"#888\")}; "
-            f"font-weight:bold'>{c['predicted_winner']}</span>",
+            f"<span style='color:{_pw_colour}; font-weight:bold'>{_pw}</span>",
             unsafe_allow_html=True,
         )
         st.markdown(f"**Majority margin:** {c['majority_margin_pp']:.2f} pp")
