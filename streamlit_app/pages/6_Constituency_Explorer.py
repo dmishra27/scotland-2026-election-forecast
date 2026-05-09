@@ -221,19 +221,8 @@ def _colour_winner(val: str) -> str:
     return f"background-color: {colour}33; color: {colour}; font-weight: bold"
 
 
-styled = (
-    df.style.apply(_style_row, axis=1)
-    .map(_colour_winner, subset=["Predicted Winner"])
-    .format({"Majority Margin (pp)": "{:.2f}"})
-    .set_properties(**{"font-size": "13px"})
-)
-
-st.markdown("### Results")
-st.dataframe(styled, use_container_width=True, hide_index=True)
-
-# ── Detail card (single result) ───────────────────────────────────────────────
-if n_results == 1:
-    c = constituencies[0]
+def _render_detail_card(c: dict) -> None:
+    """Render the full detail card for a single constituency API result dict."""
     st.divider()
     st.markdown(f"### 📌 {c['constituency']}")
 
@@ -242,7 +231,7 @@ if n_results == 1:
         st.markdown(f"**Region:** {c['region']}")
         st.markdown(
             f"**Predicted winner:** "
-            f"<span style='color:{PARTY_COLOURS.get(c['predicted_winner'], '#888')}; "
+            f"<span style='color:{PARTY_COLOURS.get(c[\"predicted_winner\"], \"#888\")}; "
             f"font-weight:bold'>{c['predicted_winner']}</span>",
             unsafe_allow_html=True,
         )
@@ -322,7 +311,6 @@ if n_results == 1:
         )
         st.plotly_chart(fig_act, use_container_width=True)
 
-        # ── Deviation table ───────────────────────────────────────────────────
         st.subheader("📊 Model vs Actual Deviation")
         pred_shares_pct: dict[str, float] = {p: v * 100 for p, v in c["vote_shares"].items()}
         all_parties_dev = sorted(
@@ -366,6 +354,31 @@ if n_results == 1:
             "Actual 2026 results not yet loaded for this constituency. "
             "Full results: [ELECTION_RESULTS.md](ELECTION_RESULTS.md)"
         )
+
+
+styled = (
+    df.style.apply(_style_row, axis=1)
+    .map(_colour_winner, subset=["Predicted Winner"])
+    .format({"Majority Margin (pp)": "{:.2f}"})
+    .set_properties(**{"font-size": "13px"})
+)
+
+st.markdown("### Results")
+st.dataframe(styled, use_container_width=True, hide_index=True)
+
+# ── Detail card ───────────────────────────────────────────────────────────────
+if n_results == 1:
+    _render_detail_card(constituencies[0])
+else:
+    st.markdown("**👆 Click a constituency name below to see details:**")
+    selected = st.selectbox(
+        "Select constituency for details",
+        options=["— select —"] + [c["constituency"] for c in constituencies],
+        key="constituency_selector",
+    )
+    if selected != "— select —":
+        selected_c = next(c for c in constituencies if c["constituency"] == selected)
+        _render_detail_card(selected_c)
 
 st.divider()
 st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
