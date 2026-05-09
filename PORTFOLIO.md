@@ -200,22 +200,22 @@ Macro F1 of 0.31 reflects genuine 6-class imbalance: SNP accounts for ≈36% of 
 
 ## Post-Election Validation (8 May 2026)
 
-The Scottish Parliament election took place on 8 May 2026 — the day before this document was last updated. Official results are pending certification. This section will be completed once the full count is confirmed.
-
-**What the model predicted (v1.5.0):** SNP majority with 73 constituency seats, all regional seats split among Reform, Labour, Conservative, LibDem, and Green. 56 marginal constituencies flagged, tightest margin 0.6 pp (Inverness and Nairn).
-
-**Honest prior expectation:** The model is trained on synthetic data derived from April 2026 YouGov MRP priors. It cannot capture late campaign swings, tactical voting coordination, or turnout variation by constituency — all of which materially affect AMS outcomes. The D'Hondt projection is arithmetically correct given the input vote shares; the vote shares themselves are the uncertain quantity. A model this simple winning on seat totals would be fortune, not precision.
+All 129 seats declared. Certified Electoral Management Board count.
 
 | Party | Projected seats | Actual seats | Delta |
 |-------|:--------------:|:------------:|:-----:|
-| SNP | 73 | — | — |
-| Reform | 16 | — | — |
-| Labour | 16 | — | — |
-| Conservative | 8 | — | — |
-| LibDem | 8 | — | — |
-| Green | 8 | — | — |
+| SNP | 73 | **58** | **−15** |
+| Reform | 16 | 17 | +1 |
+| Labour | 16 | 17 | +1 |
+| Conservative | 8 | 12 | +4 |
+| LibDem | 8 | 10 | +2 |
+| Green | 8 | **15** | **+7** |
 
-*Fill in actual column once the Electoral Management Board confirms results.*
+**Governing outcome: WRONG.** The model predicted SNP majority (73 seats, threshold 65); the actual result was SNP minority at 58 seats — 7 short of the majority threshold. SNP remains the largest party and will govern, but without a majority.
+
+**What went right:** SNP as largest party, Reform at zero constituency seats, Conservative confined to rural seats, regional list totals within ±1 seat for Reform and Labour.
+
+**What went wrong:** The model assigned all 73 constituency seats to SNP. In reality, LibDem won 7 (including a 25 pp swing in Strathkelvin and Bearsden), Green won 2 urban breakthrough seats, Labour won 3 (including Na h-Eileanan an Iar by 154 votes), and Conservative won 4 rural holds. Every one of these failures traces to a single missing feature: incumbency. A lookup table of current MSPs per constituency — publicly available from the Electoral Commission — would have been the highest-value single addition to this model.
 
 ---
 

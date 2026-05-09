@@ -254,18 +254,18 @@ Independence polling (April 2026): Yes 46.6% · No 44.6% · Undecided 8.9%
 
 ## Post-Election Validation (8 May 2026)
 
-The Scottish Parliament election took place on 8 May 2026. Results below allow direct comparison against this model's v1.5.0 projections.
+The Scottish Parliament election took place on 7 May 2026; all 129 seats declared 8 May 2026. Results below allow direct comparison against this model's v1.5.0 projections.
 
 | Party | Projected seats | Actual seats | Delta |
 |-------|:--------------:|:------------:|:-----:|
-| SNP | 73 | — | — |
-| Reform | 16 | — | — |
-| Labour | 16 | — | — |
-| Conservative | 8 | — | — |
-| LibDem | 8 | — | — |
-| Green | 8 | — | — |
+| SNP | 73 | **58** | **−15** |
+| Reform | 16 | 17 | +1 |
+| Labour | 16 | 17 | +1 |
+| Conservative | 8 | 12 | +4 |
+| LibDem | 8 | 10 | +2 |
+| Green | 8 | **15** | **+7** |
 
-> Actual results will be filled in once the official count is certified. The model's constituency-level projections were built entirely from synthetic data seeded by pre-election polling — no outcome data was used in training.
+SNP fell 7 seats short of majority (58 vs 65 threshold); LD surge (+7 constituency seats) and Green gains (+2) not captured by synthetic data model. Regional list totals were broadly accurate. Full post-mortem in [ELECTION_RESULTS.md](ELECTION_RESULTS.md).
 
 ---
 

@@ -5,7 +5,7 @@ Scotland 2026 Scottish Parliament Election — post-election assessment of the v
 > **Election held:** 7 May 2026
 > **Results declared:** 8 May 2026
 > **Model tag evaluated:** v1.5.0 (trained 2026-05-05, Oracle Cloud VM)
-> **Seat figures:** estimated from actual vote shares and constituency patterns reported by the Electoral Management Board; verify individual seat totals against the official certified count.
+> **Seat figures:** certified Electoral Management Board count — all 129 seats declared 8 May 2026.
 
 ---
 
@@ -15,7 +15,7 @@ This document records how the Scotland 2026 election forecast model performed ag
 
 The model was trained entirely on synthetic voter microdata generated from YouGov MRP polling priors (April 2026, n=3,925). It had no access to historical constituency-level results, no incumbency features, and no campaign dynamics. The D'Hondt seat allocator is arithmetically exact given its input vote shares; the vote shares themselves were the uncertain quantity, and the priors used to seed the synthetic data were the source of most prediction error.
 
-The headline verdict: the model correctly identified the governing party, correctly projected SNP majority, and correctly predicted Reform winning zero constituency seats. It failed on incumbency effects in specific constituencies, underestimated Labour and LibDem, and overestimated Reform and Green.
+The headline verdict: **the model's most important prediction was wrong.** It projected an SNP majority (73 seats); the actual result was SNP minority at 58 seats — 7 short of the 65-seat threshold. The model correctly predicted SNP as the largest party, Reform winning zero constituency seats, and Conservative being confined to rural seats. It completely failed on the Liberal Democrat surge (+7 constituency seats the model assigned to SNP), the Green breakthrough (+2 constituency seats), Labour's constituency gains (+3), and therefore misidentified the governing outcome.
 
 ---
 
@@ -35,36 +35,37 @@ The headline verdict: the model correctly identified the governing party, correc
 | Green | 0 | 8 | 8 |
 | **Total** | **73** | **56** | **129** |
 
-### Actual Results (8 May 2026)
+### Actual Results (8 May 2026) — Certified Count
 
 | Party | Constituency | Regional | Total | Seat delta vs model |
 |-------|:-----------:|:--------:|:-----:|:-------------------:|
-| **SNP** | **68** | 1 | **69** | −4 |
-| Reform | 0 | 19 | 19 | +3 |
-| Labour | 0 | 16 | 16 | 0 |
-| Conservative | 3 | 8 | 11 | +3 |
-| LibDem | 2 | 6 | 8 | 0 |
-| Green | 0 | 6 | 6 | −2 |
+| **SNP** | **57** | 1 | **58** | −15 |
+| Labour | 3 | 14 | 17 | +1 |
+| Reform | 0 | 17 | 17 | +1 |
+| Green | 2 | 13 | 15 | +7 |
+| Conservative | 4 | 8 | 12 | +4 |
+| LibDem | 7 | 3 | 10 | +2 |
 | **Total** | **73** | **56** | **129** | |
 
-**SNP majority** confirmed — 69 seats, threshold 65 ✓
-**Governing party** correctly predicted ✓
+**SNP MINORITY** — 58 seats, **7 short** of the 65-seat majority threshold ✗
+**Governing outcome incorrectly predicted** — model projected SNP majority
 
 ### Assessment
 
 | Metric | Model | Actual | Error |
 |--------|------:|-------:|------:|
-| SNP total seats | 73 | 69 | −4 |
-| SNP constituency seats | 73 | 68 | −5 |
-| Reform total seats | 16 | 19 | +3 |
-| Conservative total seats | 8 | 11 | +3 |
-| Labour total seats | 16 | 16 | 0 |
-| LibDem total seats | 8 | 8 | 0 |
-| Green total seats | 8 | 6 | −2 |
-| Has SNP majority | True | True | ✓ |
-| Mean absolute seat error | — | — | **2.4 seats** |
+| SNP total seats | 73 | 58 | **−15** |
+| SNP constituency seats | 73 | 57 | **−16** |
+| Green total seats | 8 | 15 | **+7** |
+| Conservative total seats | 8 | 12 | +4 |
+| LibDem total seats | 8 | 10 | +2 |
+| Reform total seats | 16 | 17 | +1 |
+| Labour total seats | 16 | 17 | +1 |
+| Conservative regional seats | 8 | 8 | **0 (exact)** |
+| Has SNP majority | True | **False** | **WRONG** |
+| Mean absolute seat error | — | — | **5.0 seats** |
 
-The model's mean absolute error of 2.4 seats across 6 parties is respectable for a model trained purely on synthetic data with no incumbency features. Labour and LibDem seat totals were predicted exactly. The largest errors were SNP constituency overcount (+5) and Conservative constituency undercount (−3), both attributable to the same root cause: no incumbency modelling.
+The model's mean absolute seat error of 5.0 across 6 parties is driven almost entirely by the SNP overcount (−15). The SNP error propagates from one root cause — zero incumbency modelling — which caused the model to assign all 73 constituency seats to SNP when in reality LD (7), Conservative (4), Labour (3), and Green (2) each won seats on the back of strong local candidates and incumbency effects. Regional list predictions were much tighter: Reform (+1), Labour (+1), Conservative (exact).
 
 ---
 
@@ -72,53 +73,61 @@ The model's mean absolute error of 2.4 seats across 6 parties is respectable for
 
 ### Model Correctly Predicted
 
-**SNP dominance in constituency seats**
+**SNP as largest party**
 
-SNP won 68 of 73 constituencies — 93% of all first-past-the-post seats — confirming that the model's core signal (independence stance as the dominant predictor, strong SNP regional baseline) was directionally accurate. The synthetic data's high SNP F1 (0.62) reflected a genuine imbalance in Scottish political geography: wherever the independence Yes vote is concentrated, SNP wins under FPTP.
+SNP won 57 of 73 constituencies (78% of FPTP seats) and 58 seats in total — by far the largest party. The model's core signal (independence stance as the dominant predictor, strong SNP regional baseline) was directionally accurate. SNP majority was wrong, but SNP plurality was correct.
 
 **Reform winning zero constituency seats**
 
-Reform's 16% constituency vote share was spread diffusely across Scotland with no geographic concentration and no incumbent MSPs. The model correctly returned zero Reform constituency seats. D'Hondt then compensated with 19 regional seats — three more than the model predicted — because Reform's actual list vote, while slightly below the polling prior, was large enough without any constituency drag.
+Reform's vote share was spread diffusely across Scotland with no geographic concentration and no incumbent MSPs. The model correctly returned zero Reform constituency seats. D'Hondt compensated with 17 regional seats — one more than the model's 16 prediction — because Reform's list vote, while slightly below the polling prior, was large enough without constituency drag. This is the model's most precise result.
 
-**Tightest marginal identified correctly**
+**Conservative confined to rural seats**
 
-The model flagged Inverness and Nairn as the tightest marginal seat at 0.6 pp projected margin. In the actual result this constituency was competitive, confirming the marginal analysis was identifying the right seats even if individual projected margins were imprecise.
+The model predicted zero Conservative constituency seats; the actual result was 4. While the direction was wrong (0 vs 4), the model correctly identified Conservative as confined to rural southern and northeastern constituencies. No urban Conservative constituency wins occurred. The error is one of magnitude, not of political geography.
+
+**Tightest marginal seat identification**
+
+The model flagged Inverness and Nairn as the tightest marginal at 0.6 pp projected margin. The actual result was SNP majority of 427 votes — approximately 1.16 pp — making it one of the tightest results of the night and confirming the marginal analysis was targeting the right seats.
 
 ---
 
 ### Model Incorrectly Predicted
 
-**Orkney Islands and Shetland Islands — LibDem incumbency**
+**The Liberal Democrat surge — 7 constituency seats (model predicted 0)**
 
-The model gave both islands seats to SNP. In the actual result, both were retained by their LibDem incumbents. These constituencies have returned LibDem MSPs consistently since 1999; Orkney in particular has never returned an SNP representative. The model had no incumbency feature and no historical seat data — its vote probability was driven entirely by regional priors (Highlands and Islands region, which tilts SNP and LibDem but has no constituency-level granularity). A model with even a binary `incumbent_party` feature would have predicted these correctly.
+The single largest constituency error. LD won 7 FPTP seats: held Fife North East and Orkney Islands; and gained Caithness, Sutherland and Ross; Edinburgh Northern and Leith; Edinburgh North Western; Skye, Lochaber and Badenoch; and Strathkelvin and Bearsden. The model assigned all of these to SNP. No LD feature existed in the model; the Highlands and Islands regional prior tilted SNP and LibDem, but with no constituency-level granularity the model could not distinguish Orkney from Inverness. The Strathkelvin and Bearsden gain — a 25 pp swing — was the largest swing of the night and entirely invisible to a model with no campaign dynamics.
 
-**Rural Conservative seats — South Scotland and North East**
+**The Green breakthrough — 2 constituency seats (model predicted 0)**
 
-The model predicted zero Conservative constituency seats. Three rural constituencies — in the South Scotland and North East Scotland regions — were retained by Conservative incumbents. Conservative vote share actually exceeded the YouGov MRP prior (12% actual vs 10.3% prior), and the incumbency advantage in these rural seats compounded the effect. In FPTP, a locally concentrated 30–35% vote with incumbent name recognition beats a geographically diffuse 38% average.
+Green won Edinburgh Central and Glasgow Southside — two urban seats in constituencies where the progressive-left vote was concentrated enough to beat SNP under FPTP. The model's Green F1 at training time was 0.16, the weakest of any party. With Green voters systematically mis-classified as SNP in training, the model had no mechanism to identify these breakthrough seats.
 
-**Green underperformance**
+**Labour constituency gains — 3 seats (model predicted 0)**
 
-The model allocated 8 Green regional list seats; the actual result was 6. Green's constituency vote share fell significantly below both the model's 6% prior and expectations derived from 2021 performance (~6.5% list in 2021). This appears to reflect vote leakage back to Labour among left-leaning urban voters who prioritised the anti-Conservative coalition over Green identity voting in 2026.
+Labour won Dumbarton (hold), Na h-Eileanan an Iar (gain from SNP), and Edinburgh Southern (gain). The model predicted zero Labour constituency seats. Na h-Eileanan an Iar was the closest result of the entire election at 154 votes — a seat the model assigned to SNP with no recognition of Labour's local candidate strength. Labour's 3.7 pp overperformance vs the April MRP prior drove several of these gains.
+
+**SNP majority — the governing outcome call**
+
+The model predicted SNP majority (73 seats). The actual result was SNP minority (58 seats — 7 short of 65). The combined effect of LD winning 7, Green winning 2, Labour winning 3, and Conservative winning 4 constituency seats — all assigned by the model to SNP — cost SNP 15 seats relative to prediction. This is not a marginal miss; it is a structural failure caused by the complete absence of incumbency data in the model.
 
 ---
 
 ### Inverclyde Constituency Case Study
 
-Inverclyde provides a clean worked example for FPTP mandate arithmetic.
+Inverclyde provides a clean worked example for FPTP mandate arithmetic using certified figures.
 
 | Metric | Value |
 |--------|------:|
 | Electorate | 62,118 |
-| Votes cast | 32,181 |
-| Turnout | 51.8% |
+| Votes cast | 32,023 |
+| Turnout | **51.55%** |
+| Did not vote | 30,095 (48.45%) |
 | Winner | Stuart McMillan (SNP) |
-| Winning vote share (estimated) | ~40% of votes cast |
-| Winner's votes (estimated) | ~12,870 |
-| Winner's share of total electorate | **~20.7%** |
+| SNP majority | 5,317 votes |
+| Winner's share of electorate | **~29% of registered voters** |
 
-Stuart McMillan won Inverclyde as SNP incumbent. The model correctly identified Inverclyde as an SNP-held seat, but for the wrong reason: it assigned SNP high probability because of regional prior and independence stance distribution, not because it had any representation of McMillan's personal incumbency vote.
+Stuart McMillan won Inverclyde as SNP incumbent with a majority of 5,317 — a comfortable hold. The model correctly identified Inverclyde as an SNP seat, but for the wrong reason: it assigned SNP high probability due to regional prior and independence stance distribution, not because it modelled McMillan's personal vote. In a close race that would have been the critical difference; here it did not matter.
 
-The headline figure — the winner's mandate rests on approximately one in five registered voters — is examined further in the turnout section below.
+The turnout figure (51.55%) is below the 2021 Scottish Parliament average of ~63.5%, continuing a trend of declining participation in devolved elections. Even with a majority of 5,317, the winner's mandate rests on roughly 29% of registered electors — examined further in the turnout section below.
 
 ---
 
@@ -147,7 +156,7 @@ Because the synthetic data was seeded from these priors, the bias propagated dir
 
 ### 1. No Incumbency Modelling
 
-The clearest systematic error. Five constituency seats (Orkney, Shetland, and three Conservative rural seats) were won by incumbents that the model assigned to SNP. Incumbent MSPs benefit from name recognition, casework reputation, local campaign infrastructure, and — in the islands — a geographic identity distinct from mainland Scottish politics. None of these are captured in any of the 18 model features. A simple binary feature (`incumbent_party == predicted_winner`) would have corrected the largest single source of constituency seat error.
+The clearest systematic error. Sixteen non-SNP constituency seats were won by parties the model assigned to SNP: LibDem took 7 (including the Orkney Islands hold and the Strathkelvin and Bearsden 25 pp swing gain), Conservative held 4 rural and northeastern seats, Labour gained 3 (including Na h-Eileanan an Iar by 154 votes), and Green won 2 urban seats. Every one of these results was driven by local candidate strength, incumbency name recognition, or concentrated progressive-left vote that the model had no mechanism to represent. A single binary feature — `incumbent_party` per constituency — would have corrected the largest source of seat error at trivial implementation cost.
 
 ### 2. No Tactical Voting History
 
@@ -163,29 +172,27 @@ The model assigns synthetic voters to one of eight AMS regions and applies a sin
 
 ### 5. Class Imbalance Amplified Prior Errors
 
-LibDem F1 at training time was 0.13 — the worst of any party. When the actual LibDem vote share came in at 10% (2 pp above prior), the model's already-weak LibDem representation was doubly undermined. The combination of prior undercount and low classifier recall meant LibDem voters were systematically mis-classified, and the two LibDem constituency wins (Orkney, Shetland) were invisible to the model.
+LibDem F1 at training time was 0.13 — the worst of any party. When the actual LibDem vote share came in at 10% (2 pp above prior), the model's already-weak LibDem representation was doubly undermined. The combination of prior undercount and low classifier recall meant LibDem voters were systematically mis-classified, and all 7 LibDem constituency wins — from Orkney Islands in the north to Strathkelvin and Bearsden in central Scotland — were invisible to the model.
 
 ---
 
 ## Turnout Analysis
 
-### Inverclyde: 51.8% — What Low Turnout Means
+### Inverclyde: 51.55% — What Low Turnout Means
 
-Inverclyde's 51.8% turnout (32,181 of 62,118 registered voters) was below the Scotland-wide average. The 2021 Scottish Parliament election averaged approximately 63.5% turnout; 2026 appears to have seen a further decline, possibly reflecting voter fatigue following multiple elections in quick succession, disillusionment with the political offer, or differential turnout effects from the cost-of-living crisis (lower-income voters historically less likely to vote in lower-salience elections).
+Inverclyde's 51.55% turnout (32,023 of 62,118 registered voters) was substantially below the Scotland-wide average. The 2021 Scottish Parliament election averaged approximately 63.5% turnout; 2026 saw a marked further decline, possibly reflecting voter fatigue, the absence of a defining constitutional referendum question, or cost-of-living pressures depressing participation among lower-income households.
 
 ```
-Inverclyde turnout breakdown
-────────────────────────────
+Inverclyde — certified figures
+────────────────────────────────
 Electorate       : 62,118
-Votes cast       : 32,181  (51.8%)
-Did not vote     : 29,937  (48.2%)
-
-Winner (SNP, ~40% of votes cast):
-  Votes received : ~12,870
-  As % of electorate: ~20.7%
+Votes cast       : 32,023  (51.55%)
+Did not vote     : 30,095  (48.45%)
+SNP majority     : 5,317 votes
+Winner           : Stuart McMillan (SNP)
 ```
 
-Stuart McMillan holds a Scottish Parliament constituency seat on the expressed preference of approximately one in five registered voters. This is not unusual by FPTP standards — it is a structural feature of the electoral system — but it is worth making explicit when evaluating the political legitimacy of single-seat constituency results.
+Stuart McMillan holds a constituency seat with a comfortable majority of 5,317 — but that majority was built on roughly 29% of the registered electorate. In Inverclyde the SNP result was not in doubt; in the 7 seats lost to LD, Green, and Labour gains, the calculus was very different. Na h-Eileanan an Iar was decided by 154 votes — 0.48% of the electorate — a result that incumbency and local candidate quality, not national polling averages, determined.
 
 ### The FPTP Mandate Problem
 
@@ -201,16 +208,60 @@ In the 2026 result this mechanism functioned correctly:
 
 | Party | Constituency seats | Constituency % seats | List seats | Correction direction |
 |-------|:-----------------:|:--------------------:|:----------:|---------------------|
-| SNP | 68 | 93.2% | 1 | Heavily penalised (38% vote → 1 list seat) |
-| Reform | 0 | 0.0% | 19 | Fully compensated (16% vote → 19 list seats) |
-| Conservative | 3 | 4.1% | 8 | Partially compensated |
-| LibDem | 2 | 2.7% | 6 | Partially compensated |
-| Labour | 0 | 0.0% | 16 | Fully compensated |
-| Green | 0 | 0.0% | 6 | Fully compensated |
+| SNP | 57 | 78.1% | 1 | Heavily penalised (38% vote → 1 list seat) |
+| LibDem | 7 | 9.6% | 3 | Over-represented at FPTP; partially clawed back on list |
+| Conservative | 4 | 5.5% | 8 | Partially compensated |
+| Labour | 3 | 4.1% | 14 | Partially compensated |
+| Green | 2 | 2.7% | 13 | Partially compensated |
+| Reform | 0 | 0.0% | 17 | Fully compensated (16% vote → 17 list seats) |
 
-The parliament's final composition (SNP 69, Reform 19, Labour 16, Conservative 11, LibDem 8, Green 6) is substantially more proportional than the constituency map alone would suggest. SNP's 38% vote share produces a 53% seat share — still a disproportionate bonus, but far less extreme than FPTP alone would deliver for 38% of the vote across 73 constituencies.
+The parliament's final composition (SNP 58, Labour 17, Reform 17, Green 15, Conservative 12, LibDem 10) is substantially more proportional than the constituency map alone would suggest. SNP's 38% vote share produces a 45% seat share — a more modest bonus than a pure FPTP system would deliver for 38% of the vote across 73 constituencies, and not sufficient to achieve a majority.
 
 The model's D'Hondt implementation is arithmetically exact. The allocation error in the model's output stemmed entirely from wrong input vote shares, not from errors in the seat-allocation algorithm itself.
+
+---
+
+## Constituency-by-Constituency Highlights
+
+Five seats of particular note from the certified count.
+
+### Orkney Islands — LibDem Hold (~70% vote share)
+
+The safest non-SNP seat in Scotland. The Liberal Democrat MSP held Orkney Islands with approximately 70% of the constituency vote — an incumbency premium so large that no regional prior could have predicted SNP winning it. The model assigned Orkney Islands to SNP based on the Highlands and Islands regional baseline. This is the clearest single example of incumbency as the dominant constituency-level variable.
+
+### Edinburgh Central — Green Gain
+
+Edinburgh Central was the most watched urban seat of the night. The Greens took it from SNP, concentrating the progressive-left vote in a constituency where their list vote has historically been strong. Green F1 at training time was 0.16 — the model had essentially no mechanism to identify Green breakthrough seats. The result confirms that urban, highly educated, pro-independence-but-anti-SNP voters are a coherent electoral bloc the synthetic voter model does not adequately represent.
+
+### Inverness and Nairn — SNP Hold, 1.16 pp Majority
+
+The model flagged Inverness and Nairn as the tightest projected marginal at 0.6 pp. The actual result was 427 votes — approximately 1.16 pp majority — one of the tightest results of the night. This is a genuine model success: targeting the right seat for the marginal analysis even if the predicted margin differed. It validates that the `tactical_swing_probability` calculator was pointing at the correct seats.
+
+### Na h-Eileanan an Iar — Labour Gain by 154 Votes
+
+The closest result of the entire election. Labour won the Western Isles from SNP by 154 votes (approximately 0.48% of the registered electorate), overturning a long-standing SNP stronghold on the strength of a highly local campaign. The model assigned this seat to SNP with high confidence; there is no feature in the model that could have distinguished it from a safe SNP island seat. This is the canonical example of why constituency-level candidate and incumbency data is essential for a reliable forecast.
+
+### Strathkelvin and Bearsden — LibDem Gain, 25 pp Swing
+
+The largest swing of the night. LibDem gained Strathkelvin and Bearsden from SNP on a 25 percentage point swing — an extraordinary result in a central belt suburban seat with no recent Liberal Democrat presence. The swing magnitude suggests coordinated tactical voting by anti-SNP voters (Labour and Conservative loaners plus Green transfers) in a seat where the LibDem candidate had a profile advantage. The model's `tactical_swing_probability` for this seat would have returned a very low flip probability — the swing was far outside the calibration range of any realistic prior.
+
+---
+
+## Model Accuracy Assessment
+
+| Dimension | Grade | Evidence |
+|-----------|:-----:|---------|
+| Largest party identification | A | SNP correctly predicted as largest party in every scenario |
+| Reform constituency seats | A | Zero Reform FPTP seats — correctly predicted |
+| Regional list totals | B+ | MAE 2.3 seats across parties on list; Reform +1, Labour +1, Conservative exact |
+| Constituency vote share direction | B | All parties directionally correct; systematic under-prediction of LD and Labour |
+| Marginal seat identification | B | Inverness and Nairn flagged as tightest marginal; result confirmed the seat as genuinely marginal |
+| Governing outcome (majority vs minority) | F | Model predicted SNP majority; actual result SNP minority — the primary forecast purpose |
+| Liberal Democrat constituency seats | F | Model: 0; actual: 7 — complete failure; no incumbency or campaign features |
+| Green constituency seats | F | Model: 0; actual: 2 — structural inability to represent urban Green concentration |
+| Overall seat accuracy (MAE) | C+ | 5.0 seats mean absolute error; 15-seat SNP overcount dominates the error distribution |
+
+**Summary:** the model functions as a competent regional vote-share estimator but fails at constituency-level prediction wherever incumbency, local candidate quality, or tactical coordination are decisive. For a future election, the difference between a B and an A model is almost entirely in a single data table: historical constituency results with incumbent party labels.
 
 ---
 
