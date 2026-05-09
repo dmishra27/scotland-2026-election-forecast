@@ -128,3 +128,9 @@ st.caption(
     "Constituency seats: FPTP winner per constituency.  "
     "Regional seats: D'Hondt, adjusted for constituency wins."
 )
+
+st.divider()
+st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
+           "[GitHub](https://github.com/dmishra27) · "
+           "[LinkedIn](https://linkedin.com/in/debabrata-mishra) · "
+           "[Portfolio](https://bit.ly/m/Debabrata_Mishra_Data_Science_Bio)")

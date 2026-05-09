@@ -162,3 +162,9 @@ st.markdown("""
 - The stacking ensemble improves F1 by **+4pp macro** vs the best single base learner.
 - Brier score target ≤ 0.13 (equivalent to ±7pp probability calibration error).
 """)
+
+st.divider()
+st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
+           "[GitHub](https://github.com/dmishra27) · "
+           "[LinkedIn](https://linkedin.com/in/debabrata-mishra) · "
+           "[Portfolio](https://bit.ly/m/Debabrata_Mishra_Data_Science_Bio)")

@@ -135,3 +135,9 @@ st.markdown("""
 the feature engineering step.  `independence_stance` and `previous_vote` together account for
 ~34% of total model attribution, consistent with British Electoral Survey findings.
 """)
+
+st.divider()
+st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
+           "[GitHub](https://github.com/dmishra27) · "
+           "[LinkedIn](https://linkedin.com/in/debabrata-mishra) · "
+           "[Portfolio](https://bit.ly/m/Debabrata_Mishra_Data_Science_Bio)")
