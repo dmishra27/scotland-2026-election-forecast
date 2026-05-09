@@ -119,22 +119,24 @@ st.set_page_config(
 )
 st.title("🗳️ Actual Scottish (Holyrood) Election Results 2026")
 st.markdown(
-    "Certified constituency results — 8 May 2026 · All 73 seats declared · "
-    "Source: Electoral Management Board Scotland"
+    "Certified results — 8 May 2026 · All 129 seats declared · "
+    "73 constituency (FPTP) + 56 regional list (D'Hondt)"
 )
 
 # ── Summary metrics ───────────────────────────────────────────────────────────
 m1, m2, m3, m4, m5, m6 = st.columns(6)
-m1.metric("SNP", "57 seats")
-m2.metric("Liberal Democrat", "7 seats")
-m3.metric("Conservative", "4 seats")
-m4.metric("Labour", "3 seats")
-m5.metric("Green", "2 seats")
-m6.metric("Reform", "0 seats")
+m1.metric("SNP", "58 total seats", "57 con + 1 list")
+m2.metric("Labour", "17 total seats", "3 con + 14 list")
+m3.metric("Reform", "17 total seats", "0 con + 17 list")
+m4.metric("Green", "15 total seats", "2 con + 13 list")
+m5.metric("Conservative", "12 total seats", "4 con + 8 list")
+m6.metric("Liberal Democrat", "10 total seats", "7 con + 3 list")
 
 st.info(
-    "⚠️ SNP fell short of majority — 58 total seats (57 constituency + 1 regional list) "
-    "vs 65 seat threshold. SNP will govern as a minority administration."
+    "SNP fell short of majority — 58 total seats vs 65 threshold. "
+    "SNP will govern as a minority administration.\n\n"
+    "**Constituency:** SNP 57 · LD 7 · Conservative 4 · Labour 3 · Green 2 · Reform 0\n\n"
+    "**Regional list:** SNP 1 · Labour 14 · Reform 17 · Green 13 · Conservative 8 · LD 3"
 )
 
 st.divider()
