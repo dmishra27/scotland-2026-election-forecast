@@ -51,13 +51,20 @@ st.set_page_config(
 
 st.title("🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland 2026 Scottish Parliament Election Forecast")
 st.caption("YouGov MRP polling priors · April 2026 · n = 3,925")
+st.caption("📊 Pre-election forecast · YouGov MRP polling priors · April 2026 · n=3,925 · Not the ML model output")
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
-st.markdown("### Key Metrics")
+st.subheader("📊 Key Metrics — YouGov MRP Polling Priors (Pre-Election)")
+st.info(
+    "These figures are YouGov MRP polling projections from April 2026 — the pre-election prior "
+    "used to generate synthetic training data. The ML model (stacking ensemble) projected SNP 73 seats. "
+    "Actual certified result: SNP 58 seats (minority government). "
+    "See **Actual Scottish Election Results 2026** page for full certified results."
+)
 kpi_cols = st.columns(5)
 
 kpi_data = [
-    ("SNP seats (proj.)", "67", "↑3 vs 2021"),
+    ("SNP seats (proj.)", "67", "YouGov prior · Model: 73 · Actual: 58"),
     ("Reform seats (proj.)", "20", "New entrant"),
     ("Yes (independence)", "46.6%", "2pp lead over No"),
     ("SNP majority", "65 needed", "67 projected"),
