@@ -42,10 +42,17 @@ REGIONAL_BREAKDOWN = {
 
 st.set_page_config(page_title="Seat Projections", page_icon="🪑", layout="wide")
 st.title("🪑 Seat Projections")
+st.caption("📊 YouGov MRP polling priors · April 2026 · Not the ML model output · Not the actual result")
 st.markdown("D'Hondt AMS allocation — 73 constituency + 56 regional list = **129 MSPs**")
 
 # ── summary table ─────────────────────────────────────────────────────────────
 st.markdown("### Projected seat totals")
+st.info(
+    "These projections are based on YouGov MRP polling priors (April 2026, n=3,925) — the "
+    "pre-election prior used to generate synthetic training data. The ML model projected SNP 73 seats. "
+    "Actual certified result (8 May 2026): SNP 58 seats — minority government. "
+    "See **Actual Scottish Election Results 2026** for full results."
+)
 rows = []
 for p in sorted(SEATS_2026, key=lambda x: -SEATS_2026[x]):
     change = SEATS_2026[p] - SEATS_2021.get(p, 0)
@@ -71,10 +78,10 @@ st.dataframe(
 
 # ── majority line ─────────────────────────────────────────────────────────────
 snp_total = SEATS_2026["SNP"]
-if snp_total >= 65:
-    st.success(f"✅ SNP projected at **{snp_total} seats** — majority government (65 needed)")
-else:
-    st.warning(f"⚠️ SNP projected at **{snp_total} seats** — minority government")
+st.warning(
+    f"⚠️ YouGov prior projected SNP **{snp_total} seats** (majority). "
+    "ML model projected **73**. Actual result: SNP **58** — MINORITY government. Threshold: 65 seats."
+)
 
 st.divider()
 
