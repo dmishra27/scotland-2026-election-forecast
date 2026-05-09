@@ -13,8 +13,11 @@ import streamlit as st
 PARTY_COLOURS = {
     "SNP": "#D4A017",
     "LD": "#F39C12",
+    "LibDem": "#F39C12",
     "Lab": "#C0392B",
+    "Labour": "#C0392B",
     "C": "#2471A3",
+    "Conservative": "#2471A3",
     "Green": "#27AE60",
     "Reform": "#1ABC9C",
 }
@@ -98,17 +101,17 @@ RESULTS = [
 
 # ── Seats that changed hands ──────────────────────────────────────────────────
 GAINS = [
-    {"constituency": "Caithness, Sutherland & Ross", "from_party": "SNP", "to_party": "LD", "majority_pp": 16.68},
+    {"constituency": "Caithness, Sutherland & Ross", "from_party": "SNP", "to_party": "LibDem", "majority_pp": 16.68},
     {"constituency": "Edinburgh Central", "from_party": "SNP", "to_party": "Green", "majority_pp": 13.00},
-    {"constituency": "Edinburgh Northern", "from_party": "SNP", "to_party": "LD", "majority_pp": 6.65},
+    {"constituency": "Edinburgh Northern", "from_party": "SNP", "to_party": "LibDem", "majority_pp": 6.65},
     {"constituency": "Edinburgh Southern", "from_party": "SNP", "to_party": "Lab", "majority_pp": 12.55},
-    {"constituency": "Eastwood", "from_party": "C", "to_party": "SNP", "majority_pp": 1.91},
-    {"constituency": "Banffshire & Buchan Coast", "from_party": "C", "to_party": "SNP", "majority_pp": 1.23},
+    {"constituency": "Eastwood", "from_party": "Conservative", "to_party": "SNP", "majority_pp": 1.91},
+    {"constituency": "Banffshire & Buchan Coast", "from_party": "Conservative", "to_party": "SNP", "majority_pp": 1.23},
     {"constituency": "Hamilton, Larkhall & Stonehouse", "from_party": "Lab", "to_party": "SNP", "majority_pp": 8.65},
-    {"constituency": "Perthshire North", "from_party": "C", "to_party": "SNP", "majority_pp": 17.25},
-    {"constituency": "Skye, Lochaber & Badenoch", "from_party": "SNP", "to_party": "LD", "majority_pp": 2.43},
-    {"constituency": "Shetland Islands", "from_party": "LD", "to_party": "SNP", "majority_pp": 13.21},
-    {"constituency": "Strathkelvin & Bearsden", "from_party": "SNP", "to_party": "LD", "majority_pp": 6.47},
+    {"constituency": "Perthshire North", "from_party": "Conservative", "to_party": "SNP", "majority_pp": 17.25},
+    {"constituency": "Skye, Lochaber & Badenoch", "from_party": "SNP", "to_party": "LibDem", "majority_pp": 2.43},
+    {"constituency": "Shetland Islands", "from_party": "LibDem", "to_party": "SNP", "majority_pp": 13.21},
+    {"constituency": "Strathkelvin & Bearsden", "from_party": "SNP", "to_party": "LibDem", "majority_pp": 6.47},
 ]
 
 # ── Page config ───────────────────────────────────────────────────────────────
