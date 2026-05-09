@@ -196,17 +196,37 @@ if not constituencies:
     st.stop()
 
 # ── Build display dataframe ───────────────────────────────────────────────────
-rows = [
-    {
+def _top_dev_str(api_row: dict, actual: dict | None) -> str:
+    if not actual:
+        return "—"
+    pred_pct = {p: v * 100 for p, v in api_row["vote_shares"].items()}
+    all_parties = set(pred_pct) | set(actual["actual_shares"])
+    max_dev = max(
+        (pred_pct.get(p, 0.0) - actual["actual_shares"].get(p, 0.0) for p in all_parties),
+        key=abs,
+    )
+    return f"{max_dev:+.1f}"
+
+
+rows = []
+for c in constituencies:
+    actual = ACTUAL_RESULTS.get(c["constituency"])
+    rows.append({
         "Constituency": c["constituency"],
         "Region": c["region"],
         "Predicted Winner": c["predicted_winner"],
         "Majority Margin (pp)": c["majority_margin_pp"],
         "Marginal?": "Yes" if c["is_marginal"] else "No",
         "Tactical Rec.": c["tactical_vote_recommendation"] or "—",
-    }
-    for c in constituencies
-]
+        "Actual Winner": actual["actual_winner"] if actual else "—",
+        "Actual Majority (pp)": f"{actual['actual_majority_pp']:.2f}" if actual else "—",
+        "Turnout %": f"{actual['turnout_pct']:.1f}" if actual else "—",
+        "Model Correct?": (
+            "✅" if actual and actual["actual_winner"] == c["predicted_winner"]
+            else ("❌" if actual else "—")
+        ),
+        "Top Deviation (pp)": _top_dev_str(c, actual),
+    })
 df = pd.DataFrame(rows)
 
 
@@ -219,6 +239,23 @@ def _style_row(row: pd.Series) -> list[str]:
 def _colour_winner(val: str) -> str:
     colour = PARTY_COLOURS.get(val, "#888888")
     return f"background-color: {colour}33; color: {colour}; font-weight: bold"
+
+
+def _colour_correct(val: str) -> str:
+    if val == "✅":
+        return "background-color:#D5F5E3; color:#1E8449; font-weight:bold"
+    if val == "❌":
+        return "background-color:#FADBD8; color:#C0392B; font-weight:bold"
+    return ""
+
+
+def _colour_top_dev(val: str) -> str:
+    try:
+        if abs(float(val)) > 10:
+            return "background-color:#FADBD8; color:#C0392B; font-weight:bold"
+    except (ValueError, TypeError):
+        pass
+    return ""
 
 
 def _render_detail_card(c: dict) -> None:
@@ -359,6 +396,9 @@ def _render_detail_card(c: dict) -> None:
 styled = (
     df.style.apply(_style_row, axis=1)
     .map(_colour_winner, subset=["Predicted Winner"])
+    .map(_colour_winner, subset=["Actual Winner"])
+    .map(_colour_correct, subset=["Model Correct?"])
+    .map(_colour_top_dev, subset=["Top Deviation (pp)"])
     .format({"Majority Margin (pp)": "{:.2f}"})
     .set_properties(**{"font-size": "13px"})
 )
@@ -366,19 +406,9 @@ styled = (
 st.markdown("### Results")
 st.dataframe(styled, use_container_width=True, hide_index=True)
 
-# ── Detail card ───────────────────────────────────────────────────────────────
+# ── Detail card (single result only) ─────────────────────────────────────────
 if n_results == 1:
     _render_detail_card(constituencies[0])
-else:
-    st.markdown("**👆 Click a constituency name below to see details:**")
-    selected = st.selectbox(
-        "Select constituency for details",
-        options=["— select —"] + [c["constituency"] for c in constituencies],
-        key="constituency_selector",
-    )
-    if selected != "— select —":
-        selected_c = next(c for c in constituencies if c["constituency"] == selected)
-        _render_detail_card(selected_c)
 
 st.divider()
 st.caption("Built by **Debabrata Mishra** · Data Scientist / ML Engineer · "
