@@ -125,12 +125,12 @@ st.markdown(
 
 # ── Summary metrics ───────────────────────────────────────────────────────────
 m1, m2, m3, m4, m5, m6 = st.columns(6)
-m1.metric("SNP", "58 total seats", "57 con + 1 list")
-m2.metric("Labour", "17 total seats", "3 con + 14 list")
-m3.metric("Reform", "17 total seats", "0 con + 17 list")
-m4.metric("Green", "15 total seats", "2 con + 13 list")
-m5.metric("Conservative", "12 total seats", "4 con + 8 list")
-m6.metric("Liberal Democrat", "10 total seats", "7 con + 3 list")
+m1.metric("SNP", "58 seats", "57 con + 1 list")
+m2.metric("Labour", "17 seats", "3 con + 14 list")
+m3.metric("Reform", "17 seats", "0 con + 17 list")
+m4.metric("Green", "15 seats", "2 con + 13 list")
+m5.metric("Conservative", "12 seats", "4 con + 8 list")
+m6.metric("Lib Dem", "10 seats", "7 con + 3 list")
 
 st.info(
     "SNP fell short of majority — 58 total seats vs 65 threshold. "
