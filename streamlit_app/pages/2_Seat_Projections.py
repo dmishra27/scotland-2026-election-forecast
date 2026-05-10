@@ -145,11 +145,19 @@ st.info(
 st.divider()
 
 # ── 2021 vs 2026 grouped bar ───────────────────────────────────────────────────
-st.markdown("### 2021 result vs 2026 projection")
+st.markdown("### 2021 Result vs YouGov Prior vs ML Model vs Actual 2026")
+
+ML_MODEL_2026 = {"SNP": 73, "Reform": 16, "Labour": 16, "Green": 8, "Conservative": 8, "LibDem": 8}
+ACTUAL_2026 = {"SNP": 58, "Reform": 17, "Labour": 17, "Green": 15, "Conservative": 12, "LibDem": 10}
+ACTUAL_COLOURS = {
+    "SNP": "#D4A017", "Reform": "#00B4B4", "Labour": "#C0392B",
+    "Green": "#27AE60", "Conservative": "#1A5276", "LibDem": "#E67E22",
+}
+
 all_parties = sorted(set(SEATS_2026) | set(SEATS_2021), key=lambda p: -SEATS_2026.get(p, 0))
 fig_comp = go.Figure()
 fig_comp.add_trace(go.Bar(
-    name="2021 result",
+    name="2021 Result",
     x=all_parties,
     y=[SEATS_2021.get(p, 0) for p in all_parties],
     marker_color=[PARTY_COLOURS[p] for p in all_parties],
@@ -158,22 +166,47 @@ fig_comp.add_trace(go.Bar(
     textposition="outside",
 ))
 fig_comp.add_trace(go.Bar(
-    name="2026 projection",
+    name="YouGov Prior",
     x=all_parties,
     y=[SEATS_2026.get(p, 0) for p in all_parties],
     marker_color=[PARTY_COLOURS[p] for p in all_parties],
     text=[SEATS_2026.get(p, 0) for p in all_parties],
     textposition="outside",
 ))
+fig_comp.add_trace(go.Bar(
+    name="ML Model",
+    x=all_parties,
+    y=[ML_MODEL_2026.get(p, 0) for p in all_parties],
+    marker_color=[PARTY_COLOURS[p] for p in all_parties],
+    opacity=0.7,
+    text=[ML_MODEL_2026.get(p, 0) for p in all_parties],
+    textposition="outside",
+))
+fig_comp.add_trace(go.Bar(
+    name="Actual 2026",
+    x=all_parties,
+    y=[ACTUAL_2026.get(p, 0) for p in all_parties],
+    marker=dict(
+        color=[ACTUAL_COLOURS[p] for p in all_parties],
+        line=dict(color="black", width=1.5),
+    ),
+    text=[ACTUAL_2026.get(p, 0) for p in all_parties],
+    textposition="outside",
+))
 fig_comp.add_hline(y=65, line_dash="dash", line_color="red",
                    annotation_text="Majority (65)")
 fig_comp.update_layout(
-    barmode="group", height=380,
+    barmode="group", height=420,
     yaxis_title="MSP seats",
     legend=dict(orientation="h", yanchor="bottom", y=1.02),
     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
 )
 st.plotly_chart(fig_comp, use_container_width=True)
+st.caption(
+    "Bars left to right per party: 2021 Actual | YouGov Prior (April 2026) | "
+    "ML Model v1.5.0 | Actual 2026 Result. "
+    "Red dashed line = 65 seat majority threshold."
+)
 
 st.divider()
 
