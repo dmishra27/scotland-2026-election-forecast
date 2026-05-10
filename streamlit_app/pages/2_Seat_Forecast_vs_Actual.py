@@ -220,6 +220,27 @@ st.caption(
     "Regional seats: D'Hondt, adjusted for constituency wins."
 )
 
+st.info(
+    "🔍 **Why does SNP show 0 regional list seats in most regions?**\n\n"
+    "Scotland uses the Additional Member System (AMS). "
+    "Regional list seats are allocated by the D'Hondt formula: "
+    "a party's list votes are divided by (constituency seats "
+    "already won + 1). SNP won 57 of 73 constituency seats, "
+    "so in most regions their list votes are divided by 8, 9 "
+    "or 10 — making their quotient tiny. Parties like Reform, "
+    "Green and Labour who won few or no constituency seats "
+    "divide by 1, giving them huge quotients and sweeping "
+    "the list seats instead.\n\n"
+    "This is the AMS correction mechanism working as intended "
+    "— the list compensates parties who are underrepresented "
+    "at constituency level.\n\n"
+    "**Prior vs Actual difference:** The YouGov prior heatmap "
+    "shows SNP winning more list seats because it was generated "
+    "before the election when SNP was expected to win fewer "
+    "constituency seats (~50 vs actual 57). More constituency "
+    "wins = bigger D'Hondt penalty = fewer list seats."
+)
+
 st.divider()
 st.subheader("🗳️ Actual 2026 Regional List Results")
 st.caption("Party totals certified (BBC/EMB) — 8 May 2026. Per-region distribution is estimated from D'Hondt mechanics (BBC does not publish regional breakdown).")
