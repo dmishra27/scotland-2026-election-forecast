@@ -161,7 +161,7 @@ fig_comp.add_trace(go.Bar(
     x=all_parties,
     y=[SEATS_2021.get(p, 0) for p in all_parties],
     marker_color=[PARTY_COLOURS[p] for p in all_parties],
-    opacity=0.4,
+    opacity=0.35,
     text=[SEATS_2021.get(p, 0) for p in all_parties],
     textposition="outside",
 ))
@@ -177,8 +177,8 @@ fig_comp.add_trace(go.Bar(
     name="ML Model",
     x=all_parties,
     y=[ML_MODEL_2026.get(p, 0) for p in all_parties],
-    marker_color=[PARTY_COLOURS[p] for p in all_parties],
-    opacity=0.7,
+    marker_color=["#4A4A8A"] * len(all_parties),
+    opacity=0.85,
     text=[ML_MODEL_2026.get(p, 0) for p in all_parties],
     textposition="outside",
 ))
@@ -203,8 +203,8 @@ fig_comp.update_layout(
 )
 st.plotly_chart(fig_comp, use_container_width=True)
 st.caption(
-    "Bars left to right per party: 2021 Actual | YouGov Prior (April 2026) | "
-    "ML Model v1.5.0 | Actual 2026 Result. "
+    "Bars left to right: 2021 Result (faded) | YouGov Prior (party colour) | "
+    "ML Model v1.5.0 (slate blue) | Actual 2026 (bright + black border). "
     "Red dashed line = 65 seat majority threshold."
 )
 
