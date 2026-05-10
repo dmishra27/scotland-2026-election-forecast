@@ -222,7 +222,7 @@ st.caption(
 
 st.divider()
 st.subheader("🗳️ Actual 2026 Regional List Results")
-st.caption("Certified D'Hondt allocation — 8 May 2026")
+st.caption("Party totals certified (BBC/EMB) — 8 May 2026. Per-region distribution is estimated from D'Hondt mechanics (BBC does not publish regional breakdown).")
 
 # Verified totals: SNP=1, Reform=17, Labour=14, Green=13, Con=8, LD=3 = 56
 # Each region sums to 7 (8 regions × 7 seats)
@@ -242,7 +242,7 @@ fig_actual_heat = px.imshow(
     color_continuous_scale="YlOrRd",
     text_auto=True,
     aspect="auto",
-    title="Actual 2026 regional list seats — certified result (8 May 2026)",
+    title="Actual 2026 regional list seats — certified party totals, estimated regional distribution",
 )
 fig_actual_heat.update_layout(height=380, margin=dict(l=0, r=0, t=50, b=20))
 st.plotly_chart(fig_actual_heat, use_container_width=True)
