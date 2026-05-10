@@ -40,8 +40,8 @@ REGIONAL_BREAKDOWN = {
     "West Scotland": {"SNP": 4, "Reform": 2, "Labour": 1, "Conservative": 0, "LibDem": 0, "Green": 0},
 }
 
-st.set_page_config(page_title="Seat Projections", page_icon="🪑", layout="wide")
-st.title("🪑 Seat Projections")
+st.set_page_config(page_title="Seat Forecast vs Actual", page_icon="🪑", layout="wide")
+st.title("🪑 Seat Forecast vs Actual")
 st.caption("📊 YouGov MRP polling priors · April 2026 · Not the ML model output · Not the actual result")
 st.markdown("D'Hondt AMS allocation — 73 constituency + 56 regional list = **129 MSPs**")
 
