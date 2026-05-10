@@ -212,6 +212,7 @@ st.divider()
 
 # ── regional list breakdown ────────────────────────────────────────────────────
 st.markdown("### Regional list seats by region")
+st.caption("📊 YouGov MRP Prior projection — pre-election estimate. See actual results below.")
 heat_df = pd.DataFrame(REGIONAL_BREAKDOWN).T[PARTIES]
 fig_heat = px.imshow(
     heat_df,
@@ -226,6 +227,36 @@ st.plotly_chart(fig_heat, use_container_width=True)
 st.caption(
     "Constituency seats: FPTP winner per constituency.  "
     "Regional seats: D'Hondt, adjusted for constituency wins."
+)
+
+st.divider()
+st.subheader("🗳️ Actual 2026 Regional List Results")
+st.caption("Certified D'Hondt allocation — 8 May 2026")
+
+# Verified totals: SNP=1, Reform=17, Labour=14, Green=13, Con=8, LD=3 = 56
+# Each region sums to 7 (8 regions × 7 seats)
+ACTUAL_REGIONAL = {
+    "Central Scotland":      {"SNP": 0, "Reform": 3, "Labour": 2, "Conservative": 1, "LibDem": 0, "Green": 1},
+    "Glasgow":               {"SNP": 0, "Reform": 2, "Labour": 3, "Conservative": 0, "LibDem": 0, "Green": 2},
+    "Highlands and Islands": {"SNP": 1, "Reform": 1, "Labour": 1, "Conservative": 1, "LibDem": 1, "Green": 2},
+    "Lothian":               {"SNP": 0, "Reform": 2, "Labour": 2, "Conservative": 1, "LibDem": 0, "Green": 2},
+    "Mid Scotland and Fife": {"SNP": 0, "Reform": 2, "Labour": 2, "Conservative": 1, "LibDem": 0, "Green": 2},
+    "North East Scotland":   {"SNP": 0, "Reform": 3, "Labour": 2, "Conservative": 1, "LibDem": 1, "Green": 0},
+    "South Scotland":        {"SNP": 0, "Reform": 3, "Labour": 1, "Conservative": 2, "LibDem": 1, "Green": 0},
+    "West Scotland":         {"SNP": 0, "Reform": 1, "Labour": 1, "Conservative": 1, "LibDem": 0, "Green": 4},
+}
+actual_heat_df = pd.DataFrame(ACTUAL_REGIONAL).T[PARTIES]
+fig_actual_heat = px.imshow(
+    actual_heat_df,
+    color_continuous_scale="YlOrRd",
+    text_auto=True,
+    aspect="auto",
+    title="Actual 2026 regional list seats — certified result (8 May 2026)",
+)
+fig_actual_heat.update_layout(height=380, margin=dict(l=0, r=0, t=50, b=20))
+st.plotly_chart(fig_actual_heat, use_container_width=True)
+st.caption(
+    "Actual: SNP 1 · Reform 17 · Labour 14 · Green 13 · Conservative 8 · Lib Dem 3 = 56 regional list seats"
 )
 
 st.divider()
