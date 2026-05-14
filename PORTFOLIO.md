@@ -2,7 +2,7 @@
 
 **Live:** https://scotland-2026-election-forecast.duckdns.org
 **GitHub:** https://github.com/dmishra27/scotland-2026-election-forecast
-**Tag:** v1.5.0 · Oracle Cloud VM · Ubuntu 22.04
+**Tag:** v1.8.0 · Oracle Cloud VM · Ubuntu 22.04
 
 ---
 
@@ -16,7 +16,7 @@ A full ML engineering lifecycle — from synthetic data generation through exper
 
 | Service | URL |
 |---------|-----|
-| Streamlit dashboard (6 pages) | `https://scotland-2026-election-forecast.duckdns.org/` |
+| Streamlit dashboard (8 pages) | `https://scotland-2026-election-forecast.duckdns.org/` |
 | FastAPI Swagger UI | `https://scotland-2026-election-forecast.duckdns.org/api/docs` |
 | Health check | `https://scotland-2026-election-forecast.duckdns.org/api/health` |
 | Marginal seats JSON | `https://scotland-2026-election-forecast.duckdns.org/api/seats/marginals` |
@@ -173,6 +173,21 @@ Macro F1 of 0.31 reflects genuine 6-class imbalance: SNP accounts for ≈36% of 
 
 ---
 
+## Dashboard Pages
+
+| # | Page | Purpose |
+|---|------|---------|
+| — | Home | Project overview, live endpoints, architecture summary |
+| 1 | Voter Simulator | Interactive voter profile input → predicted party + per-party probabilities via API |
+| 2 | Seat Forecast vs Actual | v1.5.0 D'Hondt projection vs certified 8 May 2026 results; four-bar chart and three-way comparison table |
+| 3 | Model Performance | F1 macro/per-party, accuracy, confusion matrix, classification report |
+| 4 | Feature Importance | SHAP TreeExplainer mean absolute values averaged across all four base learners |
+| 5 | Marginal Constituencies | 56 marginals ranked by swing probability with tactical vote recommendation |
+| 6 | Constituency Explorer | Per-seat search — predicted vs actual results, winning candidate names, seat deviation table |
+| 7 | Actual Scottish Election Results 2026 | Certified count for all 129 seats; regional heatmap of estimated per-region seat distribution |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -187,7 +202,7 @@ Macro F1 of 0.31 reflects genuine 6-class imbalance: SNP accounts for ≈36% of 
 | Explainability | SHAP (TreeExplainer) |
 | Seat allocation | D'Hondt AMS (custom Python) |
 | API | FastAPI + Uvicorn |
-| Dashboard | Streamlit + Plotly (6 pages) |
+| Dashboard | Streamlit + Plotly (8 pages) |
 | Containerisation | Docker + Docker Compose |
 | Reverse proxy | Nginx stable-alpine |
 | SSL | Let's Encrypt (certbot standalone) |
@@ -269,11 +284,12 @@ scotland-2026-election-forecast/
 |   +-- Home.py
 |   \-- pages/
 |       +-- 1_Voter_Simulator.py
-|       +-- 2_Seat_Projections.py
+|       +-- 2_Seat_Forecast_vs_Actual.py
 |       +-- 3_Model_Performance.py
-|       +-- 4_SHAP_Explainability.py
+|       +-- 4_Feature_Importance.py
 |       +-- 5_Marginal_Constituencies.py
-|       \-- 6_Constituency_Explorer.py
+|       +-- 6_Constituency_Explorer.py
+|       \-- 7_Actual_Scottish_Election_Results_2026.py
 |
 +-- scripts/
 |   +-- generate_data.py       # DVC stage: generate

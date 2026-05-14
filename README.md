@@ -5,7 +5,7 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg?logo=docker&logoColor=white)](deploy/docker-compose.prod.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tag](https://img.shields.io/badge/tag-v1.5.0-lightgrey.svg)](https://github.com/dmishra27/scotland-2026-election-forecast/releases/tag/v1.5.0)
+[![Tag](https://img.shields.io/badge/tag-v1.8.0-lightgrey.svg)](https://github.com/dmishra27/scotland-2026-election-forecast/releases/tag/v1.8.0)
 
 A production-grade MLOps pipeline that generates synthetic voter micro-data from YouGov MRP polling priors (April 2026, n=3,925), trains a stacking ensemble classifier across six Scottish political parties, allocates seats via the D'Hondt Additional Member System algorithm, and serves live forecasts through a containerised FastAPI + Streamlit stack on Oracle Cloud — secured with HTTPS via Let's Encrypt and continuously deployed via GitHub Actions.
 
@@ -61,11 +61,29 @@ nginx reverse proxy → Oracle Cloud VM (ARM64, Ubuntu 22.04)
 
 ---
 
+## Dashboard Pages
+
+| # | Page | Description |
+|---|------|-------------|
+| — | Home | Project overview, live endpoints, architecture summary |
+| 1 | Voter Simulator | Interactive voter profile → predicted party + per-party probabilities |
+| 2 | Seat Forecast vs Actual | v1.5.0 D'Hondt projection vs certified 8 May 2026 results; four-bar chart (predicted/actual constituency/list) and three-way comparison table |
+| 3 | Model Performance | F1, accuracy, confusion matrix, per-party classification report |
+| 4 | Feature Importance | SHAP TreeExplainer mean absolute values averaged across all four base learners |
+| 5 | Marginal Constituencies | 56 marginals ranked by swing probability; tactical vote map |
+| 6 | Constituency Explorer | Per-seat search — predicted vs actual results, winning candidate names, deviation table |
+| 7 | Actual Scottish Election Results 2026 | Certified count for all 129 seats; regional heatmap showing estimated per-region seat distribution |
+
+---
+
 ## Constituency Explorer
 
 The **Constituency Explorer** page (Streamlit page 6) lets users search any of Scotland's 73 constituency seats by name. Each result shows:
 
 - Predicted vote share for all 6 parties rendered as a horizontal bar chart sorted by descending share (percentages, not raw probabilities)
+- Actual 2026 certified results columns alongside model predictions
+- Seat deviation table — predicted vs certified result per party, with delta highlighted
+- Winning candidate name and party from the certified count
 - Leading party, majority margin (pp), and tactical vote recommendation
 - Full-text search with partial match — e.g. "Glasgow" returns all Glasgow constituencies instantly
 

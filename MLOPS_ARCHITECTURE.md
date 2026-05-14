@@ -232,7 +232,10 @@ Renewal uses `certbot renew --quiet` with pre/post Docker Compose hooks rather t
 | `v1.2.0` | `d0a7748` | Marginal constituency analysis, tactical swing probability, Evidently drift monitoring (Phase 2) |
 | `v1.3.0` | `43d1d49` | Async retrain endpoint (`POST /model/retrain` + status polling), MLflow info panel in Streamlit |
 | `v1.4.0` | `a3f5eb4` | Constituency Explorer — per-seat search, cached projections, `GET /seats/constituencies` |
-| `v1.5.0` | `0c525aa` | Constituency vote-share chart fix — percentages, descending sort (current production tag) |
+| `v1.5.0` | `0c525aa` | Constituency vote-share chart fix — percentages, descending sort |
+| `v1.6.0` | — | Post-election results page (`7_Actual_Scottish_Election_Results_2026.py`) — certified 129-seat count, regional heatmap, candidate names |
+| `v1.7.0` | — | Seat Forecast vs Actual — page renamed from Seat Projections; four-bar chart and three-way comparison table added; Constituency Explorer enhanced with actual results columns and deviation table |
+| `v1.8.0` | — | Documentation sync — all docs updated to 8-page dashboard; Feature Importance page (renamed from SHAP Explainability); LLMOps integration roadmap formalised (current production tag) |
 
 ---
 
@@ -442,16 +445,16 @@ On success, the retrained `models/latest/ensemble.pkl` and `models/latest/pipeli
 | 10 | Seat allocation | D'Hondt AMS — 73 constituency + 56 regional list seats | `src/models/dhondt.py` |
 | 11 | Drift monitoring | Evidently `DataDriftPreset`, JSONL prediction log, HTML reports | `src/monitoring/drift.py` |
 | 12 | REST API | FastAPI + Uvicorn, 9 endpoints, demo-mode fallback, async retrain | `src/api/main.py` |
-| 13 | Interactive dashboard | Streamlit 6-page app + Plotly charts | `streamlit_app/` |
+| 13 | Interactive dashboard | Streamlit 8-page app + Plotly charts | `streamlit_app/` |
 | 14 | Containerisation | Docker Compose — 4 services, health-check cascade, bind volumes | `deploy/docker-compose.prod.yml` |
 | 15 | Reverse proxy | Nginx stable-alpine — routing, WebSocket, gzip, HTTPS | `deploy/nginx.conf` |
 | 16 | CI/CD | GitHub Actions — 3 workflows, gated deploy, drift alerting | `.github/workflows/` |
 
 ---
 
-## LLM / AI Enhancement Vision
+## LLMOps Integration Roadmap
 
-The current system has no LLM components. The following describes where AI-native capabilities would add the most value, ordered by the MLOps pillar they belong to.
+The current system has no LLM components. The following roadmap describes where AI-native capabilities would add the most value, ordered by the MLOps pillar they belong to. Implementation of any item below would extend the stack beyond classical MLOps into LLMOps — closing the loop between live election data, automated reasoning, and model governance.
 
 ---
 

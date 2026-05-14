@@ -9,6 +9,16 @@ Scotland 2026 Scottish Parliament Election — post-election assessment of the v
 
 ---
 
+## Dashboard Visualisations (v1.8.0)
+
+The v1.8.0 dashboard adds two comparison views built from the certified results in this document:
+
+- **Four-bar chart** (Seat Forecast vs Actual page) — side-by-side bars for predicted constituency seats, actual constituency seats, predicted regional list seats, and actual regional list seats per party, using consistent grey/amber/blue/green colouring.
+- **Three-way comparison table** (Seat Forecast vs Actual page) — projected total, actual total, and delta columns for all six parties with delta cells highlighted in red/green.
+- **Actual results page** (`7_Actual_Scottish_Election_Results_2026.py`) — full certified 129-seat breakdown with a regional heatmap showing the estimated per-region seat distribution.
+
+---
+
 ## Overview
 
 This document records how the Scotland 2026 election forecast model performed against the actual Scottish Parliament election result. It is an honest post-mortem, not a retrospective rationalisation. The purpose is to identify which design decisions worked, which structural limitations were confirmed by the result, and what a future version of the model would need to change.
